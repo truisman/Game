@@ -1,0 +1,84 @@
+# depslib dependency file v1.0
+1742020120 source:d:\game development sdl\2d shooter\main.cpp
+	"Game.h"
+	"Globals.h"
+
+1742321658 source:d:\game development sdl\2d shooter\bullet.cpp
+	"Bullet.h"
+	"Player.h"
+	<iostream>
+
+1742320968 d:\game development sdl\2d shooter\bullet.h
+	<SDL.h>
+	"Globals.h"
+	"Player.h"
+
+1742317840 d:\game development sdl\2d shooter\globals.h
+	<SDL.h>
+	<SDL_image.h>
+	<vector>
+	<iostream>
+	<cmath>
+	<algorithm>
+	<cstdlib>
+	<ctime>
+	<random>
+
+1742317598 d:\game development sdl\2d shooter\player.h
+	<SDL.h>
+	<vector>
+	"Bullet.h"
+	"Globals.h"
+
+1742322117 source:d:\game development sdl\2d shooter\enemy.cpp
+	"Enemy.h"
+	"Player.h"
+	"Obstacle.h"
+	"Game.h"
+	<iostream>
+
+1742317840 d:\game development sdl\2d shooter\enemy.h
+	"Globals.h"
+	"Bullet.h"
+
+1742316376 d:\game development sdl\2d shooter\obstacle.h
+	"Globals.h"
+	"Game.h"
+
+1742320968 source:d:\game development sdl\2d shooter\game.cpp
+	"Game.h"
+	"Enemy.h"
+	<limits>
+
+1742320757 d:\game development sdl\2d shooter\game.h
+	"Globals.h"
+	"Player.h"
+	"Bullet.h"
+	"Enemy.h"
+	"Obstacle.h"
+	"Orb.h"
+
+1742321658 source:d:\game development sdl\2d shooter\global.cpp
+	"Globals.h"
+
+1742321076 source:d:\game development sdl\2d shooter\obstacle.cpp
+	"Obstacle.h"
+	"Player.h"
+	"Bullet.h"
+	"Game.h"
+	"Globals.h"
+
+1742321804 source:d:\game development sdl\2d shooter\player.cpp
+	"Player.h"
+	"Bullet.h"
+	<iostream>
+
+1742316377 d:\game development sdl\2d shooter\orb.h
+	<SDL.h>
+	"Globals.h"
+	"Player.h"
+
+1742316376 source:d:\game development sdl\2d shooter\orb.cpp
+	"Orb.h"
+	"Globals.h"
+
