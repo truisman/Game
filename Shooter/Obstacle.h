@@ -2,29 +2,34 @@
 #ifndef OBSTACLE_H
 #define OBSTACLE_H
 
+#include <SDL.h>
 #include "Globals.h" // For common includes
 #include "Game.h"
-class Player;  // Forward declaration
-class Bullet; // Forward declare Bullet
+
+class Player;
+class Bullet;
+class Game;
 
 class Obstacle {
 public:
-    float x, y, width, height;
-    SDL_Texture* texture;
-    ObstacleType type;
-    Uint32 lastShotTime;
+    float x, y;
+    int width, height; // Changed w, h to width, height for consistency
     int health;
+    ObstacleType type;
+
+    SDL_Texture* texture;
+    Uint32 lastShotTime;
     float initialY;
     float angle;
 
-    Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType typeint, int health = 100); // Modified constructor
-    SDL_Rect GetRect() const;
+    Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType type, int health);
+    void Update(Player* player, std::vector<Bullet*>& enemyBullets, Game* game);
+    void UpdateNeutral(Game* game);
+    void UpdateHostile(Player* player, std::vector<Bullet*>& enemyBullets, Game* game);
+    void Shoot(std::vector<Bullet*>& enemyBullets, Player* player);
     void Render(SDL_Renderer* renderer, Player* player);
-    void Update(Player* player, std::vector<Bullet*>& enemyBullets, Game* game); // Add Update method for shooting
-    void Shoot(std::vector<Bullet*>& enemyBullets, Player* player);  // Add Shoot method
     void TakeDamage(int damage);
-private:
-    Game* game;
+    SDL_Rect GetRect() const;
 };
 
 #endif // OBSTACLE_H

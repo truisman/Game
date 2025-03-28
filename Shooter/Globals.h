@@ -37,12 +37,15 @@ extern const int NUM_GRID_CELLS;
 extern const float MIN_SEPARATION_DISTANCE;
 extern const int ORB_SIZE;
 extern const float ORB_FADE_RATE;
+extern const float CREDITS_SCROLL_SPEED;
+extern const int CREDITS_LINE_HEIGHT;
 
 enum class EnemyType {
     NORMAL,
     FAST,
     TANK,
-    QUICK
+    QUICK,
+    BOSS
 };
 
 enum class ObstacleType {
@@ -53,7 +56,8 @@ enum class ObstacleType {
 enum class BulletType {
     NORMAL,
     POWERED,
-    SUPER_POWERED
+    SUPER_POWERED,
+    EXTREME_POWERED
 };
 
 enum class EnemyState {

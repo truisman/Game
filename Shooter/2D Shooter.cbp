@@ -59,6 +59,8 @@
 		<Unit filename="Orb.h" />
 		<Unit filename="Player.cpp" />
 		<Unit filename="Player.h" />
+		<Unit filename="StageManager.cpp" />
+		<Unit filename="StageManager.h" />
 		<Unit filename="main.cpp" />
 		<Extensions />
 	</Project>

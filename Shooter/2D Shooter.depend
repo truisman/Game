@@ -82,3 +82,112 @@
 	"Orb.h"
 	"Globals.h"
 
+1743177945 source:d:\game development sdl\2d shooter\shooter\bullet.cpp
+	"Bullet.h"
+	"Player.h"
+	<iostream>
+
+1743158991 d:\game development sdl\2d shooter\shooter\bullet.h
+	<SDL.h>
+	"Globals.h"
+	"Player.h"
+
+1743189742 d:\game development sdl\2d shooter\shooter\globals.h
+	<SDL.h>
+	<SDL_image.h>
+	<vector>
+	<iostream>
+	<cmath>
+	<algorithm>
+	<cstdlib>
+	<ctime>
+	<random>
+
+1743189742 d:\game development sdl\2d shooter\shooter\player.h
+	<SDL.h>
+	<vector>
+	"Bullet.h"
+	"Globals.h"
+	"Game.h"
+
+1742020120 source:d:\game development sdl\2d shooter\shooter\main.cpp
+	"Game.h"
+	"Globals.h"
+
+1743191254 d:\game development sdl\2d shooter\shooter\game.h
+	<SDL.h>
+	<SDL_ttf.h>
+	<vector>
+	<string>
+	<sstream>
+	"Globals.h"
+	"Player.h"
+	"Bullet.h"
+	"Enemy.h"
+	"Obstacle.h"
+	"Orb.h"
+	"StageManager.h"
+
+1743175657 d:\game development sdl\2d shooter\shooter\enemy.h
+	"Bullet.h"
+
+1743156774 d:\game development sdl\2d shooter\shooter\obstacle.h
+	<SDL.h>
+	"Globals.h"
+	"Game.h"
+
+1743176730 d:\game development sdl\2d shooter\shooter\orb.h
+	<SDL.h>
+	"Globals.h"
+	"Player.h"
+
+1743179761 source:d:\game development sdl\2d shooter\shooter\enemy.cpp
+	"Enemy.h"
+	"Player.h"
+	"Obstacle.h"
+	"Game.h"
+	<iostream>
+
+1743192344 source:d:\game development sdl\2d shooter\shooter\global.cpp
+	"Globals.h"
+
+1743157117 source:d:\game development sdl\2d shooter\shooter\obstacle.cpp
+	"Obstacle.h"
+	"Player.h"
+	"Bullet.h"
+	"Game.h"
+	"Globals.h"
+	<cmath>
+	<SDL.h>
+
+1743176545 source:d:\game development sdl\2d shooter\shooter\orb.cpp
+	"Orb.h"
+	"Globals.h"
+
+1743177469 source:d:\game development sdl\2d shooter\shooter\player.cpp
+	"Player.h"
+	"Bullet.h"
+	<iostream>
+	"Game.h"
+
+1743192201 source:d:\game development sdl\2d shooter\shooter\game.cpp
+	"Game.h"
+	"Enemy.h"
+	<iostream>
+	<cmath>
+	<algorithm>
+	<vector>
+
+1743190493 d:\game development sdl\2d shooter\shooter\stagemanager.h
+	<vector>
+	<map>
+	<SDL_stdinc.h>
+
+1743189742 source:d:\game development sdl\2d shooter\shooter\stagemanager.cpp
+	"StageManager.h"
+	"Enemy.h"
+	"Player.h"
+	<iostream>
+	<vector>
+	<map>
+

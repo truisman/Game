@@ -1,54 +1,132 @@
-// include/Game.h
 #ifndef GAME_H
 #define GAME_H
 
-#include "Globals.h"  // For common includes
-#include "Player.h" // Include Player
-#include "Bullet.h" // Include Bullet
-#include "Enemy.h"  // Include Enemy
-#include "Obstacle.h"  // Include Obstacle
+#include <SDL.h>
+#include <SDL_ttf.h>
+#include <vector>
+#include <string>
+#include <sstream>
+#include "Globals.h"
+#include "Player.h"
+#include "Bullet.h"
+#include "Enemy.h"
+#include "Obstacle.h"
 #include "Orb.h"
+#include "StageManager.h"
 
+class Player;
+class Bullet;
+class Enemy;
+class Obstacle;
+class Orb;
+
+// --- GAME STATES ---
+enum class GameState {
+    MAIN_MENU,
+    PLAYING,
+    GAME_OVER,
+    CREDITS
+};
+// ---
 
 class Game {
 public:
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    int bulletRenderOffsetX;
-    int bulletRenderOffsetY;
-
-    bool isRunning;
-    Player* player;
-    SDL_Texture* playerTex;
-    SDL_Texture* bulletTexture;
-    SDL_Texture* enemyTexture;
-    SDL_Texture* neutralObstacleTexture;
-    SDL_Texture* hostileObstacleTexture;
-    SDL_Texture* backgroundTexture;
-    SDL_Texture* orbTexture;
-
-    std::vector<Orb*> orbs;
-    std::vector<Bullet*> bullets;
-    std::vector<Bullet*> enemyBullets;
-    std::vector<Enemy*> enemies;
-    std::vector<Obstacle*> obstacles;
-    Uint32 lastEnemySpawnTime;
+    // ... (textures made public or use getters) ...
+    SDL_Texture* bulletTexNormal;
+    SDL_Texture* bulletTexPowered;
+    SDL_Texture* bulletTexSuperPowered;
+    SDL_Texture* bulletTexExtremePowered;
+    SDL_Texture* bulletTexBoss;
 
 
     Game();
-    ~Game(); // Add destructor
+    ~Game();
 
     bool Init(const char* title, int xpos, int ypos, int width, int height, bool fullscreen);
-    void SpawnEnemy(int count);
-    void SpawnObstacles(int count);
-    float RandomFloat(float min, float max);
-    bool CheckObstacleOverlap(float x, float y, float size);
-    bool CheckNeutralSeparation(float x, float y);
     void HandleEvents();
     void Update();
     void Render();
     void Clean();
     bool Running() const;
+
+    float RandomFloat(float min, float max);
+    SDL_Renderer* GetRenderer();
+
+
+private:
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    bool isRunning;
+    Uint32 lastEnemySpawnTime;
+    int bulletRenderOffsetX;
+    int bulletRenderOffsetY;
+    int backgroundWidth;
+    int backgroundHeight;
+
+    // --- Game State ---
+    GameState currentState;
+
+    // --- Game Objects ---
+    Player* player;
+    std::vector<Bullet*> bullets;
+    std::vector<Enemy*> enemies;
+    std::vector<Bullet*> enemyBullets;
+    std::vector<Obstacle*> obstacles;
+    std::vector<Orb*> orbs;
+
+    // --- Managers ---
+    StageManager stageManager;
+
+    // --- Textures ---
+    SDL_Texture* playerTex;
+    SDL_Texture* enemyTexNormal;
+    SDL_Texture* enemyTexFast;
+    SDL_Texture* enemyTexTank;
+    SDL_Texture* enemyTexQuick;
+    SDL_Texture* enemyTexBoss;
+    SDL_Texture* neutralObstacleTexture;
+    SDL_Texture* hostileObstacleTexture;
+    SDL_Texture* backgroundTexture;
+    SDL_Texture* orbTexture;
+    SDL_Texture* menuBackgroundTexture;
+
+
+    // --- UI / Font ---
+    TTF_Font* uiFont;
+    SDL_Color textColor;
+    SDL_Color highlightColor;
+
+    // --- Credits State ---
+    float creditsScrollY;
+    Uint32 creditsStartTime;
+
+    // --- Menu State ---
+    int selectedMenuOption;
+
+    // Other Helpers
+    void SpawnEnemy(int count);
+    void SpawnObstacles(int count);
+    void RenderText(const std::string& text, int x, int y, bool centered = false, SDL_Color color = {255, 255, 255, 255});
+
+    // Game Flow Helpers
+    void StartNewGame();
+    void ResetGameData();
+    void ReturnToMenu();
+
+    // --- Private Methods ---
+    void HandleMenuInput(SDL_Event& event);
+    void HandlePlayingInput(const Uint8* keystate);
+    void HandleGameOverInput(SDL_Event& event);
+    void HandleCreditsInput(SDL_Event& event);
+
+    void UpdatePlayingState();
+    void UpdateCreditsState();
+
+    void RenderMainMenu();
+    void RenderPlayingState();
+    void RenderPlayingUI();
+    void RenderGameOver();
+    void RenderEndCredits();
 };
 
-#endif // GAME_H
+#endif

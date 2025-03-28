@@ -2,31 +2,43 @@
 #include "Player.h"
 #include "Obstacle.h"
 #include "Game.h"
-#include <iostream> // For debugging output
+#include <iostream>
 
-Enemy::Enemy(float x, float y, SDL_Texture* tex, Player* target, int health, float speed, float firingRateFactor, Game* game, EnemyType type)
-    : x(x), y(y), vx(0), vy(0), angle(0), width(60), height(60), texture(tex), target(target), health(health), speed(ENEMY_SPEED),
+Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target, int health, float speedFactor, float firingRateFactor, Game* game, EnemyType type, SDL_Texture* selectedBulletTexture)
+    : x(x), y(y), vx(0), vy(0), angle(0), width(110), height(110), texture(selectedTexture),bulletTexture(selectedBulletTexture), target(target), health(health), speed(ENEMY_SPEED),
       firingRateFactor(firingRateFactor), lastShotTime(0), state(EnemyState::WANDERING), lastStateChange(0)
 {
     switch (type) {
         case EnemyType::NORMAL:
-            // Default values are already set in the member initialization list
+            this->health = 100;
             break;
         case EnemyType::FAST:
-            // Modify values for fast enemies (e.g., increase speed)
-            this->width = 50;
-            this->height = 50;
-            this->speed = 4.0f;
+            this->width = 110;
+            this->height = 110;
+            this->speed = ENEMY_SPEED * 1.5f;
+            this->health = 70;
             break;
         case EnemyType::TANK:
-            // Modify values for tanky enemies (e.g., increase health)
-            this->width = 80;
-            this->height = 80;
-            this->health *= 3;
+            this->width = 200;
+            this->height = 200;
+            this->speed = ENEMY_SPEED * 0.6f;
+            this->health *= 5;
+            this->firingRateFactor *= 0.5f;
             break;
         case EnemyType::QUICK:
-            this->firingRateFactor = firingRateFactor * 2;
+             this->width = 130;
+             this->height = 130;
+             this->speed = ENEMY_SPEED * 1.2f;
+             this->firingRateFactor *= 2.0f;
+             this->health = 120;
             break;
+        case EnemyType::BOSS:
+             this->width = 300;
+             this->height = 300;
+             this->speed *= 0.5f;
+             this->health = 5000;
+             this->firingRateFactor *= 1.5f;
+             break;
     }
 }
 
@@ -198,34 +210,90 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
 }
 
 void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
-    float dx = target->x - x;
-    float dy = target->y - y;
+    float targetCenterX = target->x + target->width / 2.0f;
+    float targetCenterY = target->y + target->height / 2.0f;
+    float startX = x + width / 2.0f;
+    float startY = y + height / 2.0f;
+
+    float dx = targetCenterX - startX;
+    float dy = targetCenterY - startY;
     float length = sqrt(dx * dx + dy * dy);
-    float bulletVX = (dx / length) * BULLET_SPEED;
-    float bulletVY = (dy / length) * BULLET_SPEED;
+
+    float baseVX = 0, baseVY = 0;
+    float angleToTargetRad = 0;
+    if (length > 0.01f) {
+        baseVX = dx / length;
+        baseVY = dy / length;
+        angleToTargetRad = atan2(baseVY, baseVX);
+    } else {
+        angleToTargetRad = (this->angle + 90.0f) * M_PI / 180.0f;
+        baseVX = cos(angleToTargetRad);
+        baseVY = sin(angleToTargetRad);
+    }
 
     BulletType bulletType = BulletType::NORMAL;
-    if (type == EnemyType::TANK) {
-        bulletType = BulletType::POWERED;
-    }
-    if (type == EnemyType::QUICK) {
-        bulletType = BulletType::POWERED;
+    int baseDamage = 20;
+
+    switch (type) {
+        case EnemyType::NORMAL:
+            bulletType = BulletType::NORMAL;
+            break;
+        case EnemyType::FAST:
+            bulletType = BulletType::POWERED;
+            break;
+        case EnemyType::TANK:
+            bulletType = BulletType::EXTREME_POWERED;
+            break;
+        case EnemyType::QUICK:
+            bulletType = BulletType::SUPER_POWERED;
+            break;
+        case EnemyType::BOSS:
+            bulletType = BulletType::EXTREME_POWERED;
+            break;
     }
 
     switch (type) {
-    case EnemyType::NORMAL:
-        enemyBullets.push_back(new Bullet(x + width / 2, y + height / 2, bulletVX, bulletVY, texture, 10, bulletType));
-        break;
-    case EnemyType::FAST:
-        enemyBullets.push_back(new Bullet(x + width / 2, y + height / 2, bulletVX, bulletVY, texture, 10, bulletType));
-        break;
-    case EnemyType::TANK:
-         enemyBullets.push_back(new Bullet(x + width / 2, y + height / 2, bulletVX, bulletVY, texture, 30, bulletType));
-        break;
-    case EnemyType::QUICK:
-        enemyBullets.push_back(new Bullet(x + width / 2 - 10, y + height / 2, bulletVX, bulletVY, texture, 10, bulletType));
-        enemyBullets.push_back(new Bullet(x + width / 2 + 10, y + height / 2, bulletVX, bulletVY, texture, 10, bulletType));
-        break;
+        case EnemyType::NORMAL:
+            break;
+        case EnemyType::FAST:
+            break;
+        case EnemyType::TANK:
+            {
+                enemyBullets.push_back(new Bullet(startX, startY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+            }
+            break;
+
+        case EnemyType::QUICK:
+            {
+            float perpAngle = angleToTargetRad + M_PI / 2.0f;
+            float offsetDist = 10.0f;
+            float offsetX = offsetDist * cos(perpAngle);
+            float offsetY = offsetDist * sin(perpAngle);
+
+            enemyBullets.push_back(new Bullet(startX + offsetX, startY + offsetY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(startX - offsetX, startY - offsetY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+            }
+            break;
+
+        case EnemyType::BOSS:
+            {
+            enemyBullets.push_back(new Bullet(startX, startY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+
+            float angleLeft90 = angleToTargetRad - M_PI / 2.0f;
+            float angleRight90 = angleToTargetRad + M_PI / 2.0f;
+            float sideSpeedFactor = 0.6f;
+
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleLeft90) * sideSpeedFactor, sin(angleLeft90) * sideSpeedFactor, this->bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleRight90) * sideSpeedFactor, sin(angleRight90) * sideSpeedFactor, this->bulletTexture, baseDamage, bulletType));
+
+            float spreadRad = 15.0f * M_PI / 180.0f;
+            float angleLeftSpread = angleToTargetRad - spreadRad;
+            float angleRightSpread = angleToTargetRad + spreadRad;
+
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleLeftSpread), sin(angleLeftSpread), this->bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleRightSpread), sin(angleRightSpread), this->bulletTexture, baseDamage, bulletType));
+            }
+            break;
     }
 }
 

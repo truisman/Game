@@ -12,9 +12,10 @@ public:
     int width, height;
     SDL_Texture* texture;
     float alpha; // For fading effect
+    int xpValue;
 
-    Orb(float x, float y, SDL_Texture* texture);
-    void Update(Player* player);
+    Orb(float x, float y, SDL_Texture* texture, int size, int xp);
+    void Update();
     void Render(SDL_Renderer* renderer, Player* player);
     SDL_Rect GetRect() const;
 };

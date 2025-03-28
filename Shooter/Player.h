@@ -1,4 +1,3 @@
-// include/Player.h
 #ifndef PLAYER_H
 #define PLAYER_H
 
@@ -6,8 +5,10 @@
 #include <vector>
 #include "Bullet.h"
 #include "Globals.h"
+#include "Game.h"
 
-class Bullet; // Forward declaration
+class Bullet;
+class Game;
 
 class Player {
 public:
@@ -16,28 +17,27 @@ public:
     float angle;
     int width, height;
     SDL_Texture* texture;
+    Game* game;
     int health;
     float speed;
     float firingRateFactor;
     Uint32 lastShotTime;
     float speedMultiplier;
-    float rotation;
     ShootingPattern shootingPattern;
-
     int level;
     int experience;
     int experienceToNextLevel;
     BulletType bulletType;
 
-    Player(float x, float y, SDL_Texture* tex, int health, float speed);
+    Player(float x, float y, SDL_Texture* selectedTexture, int health, float speed, Game* game);
 
-    void HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets, SDL_Texture* bulletTexture);
-    void Move(float speed);
+    void HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets);
+    void Move(float moveSpeed);
     void Rotate(float amount);
     void Render(SDL_Renderer* renderer);
-    void Shoot(std::vector<Bullet*>& bullets, SDL_Texture* bulletTexture, ShootingPattern shootingPattern);
+    void Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPattern);
     void AddExperience(int amount);
     void LevelUp();
 };
 
-#endif // PLAYER_Ha
+#endif
