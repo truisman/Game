@@ -10,26 +10,26 @@ Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target, int
 {
     switch (type) {
         case EnemyType::NORMAL:
-            this->health = 200;
+            this->health = 150;
             break;
         case EnemyType::FAST:
             this->width = 110;
             this->height = 110;
             this->speed = ENEMY_SPEED * 1.5f;
-            this->health = 150;
+            this->health = 200;
             break;
         case EnemyType::TANK:
-            this->width = 200;
-            this->height = 200;
+            this->width = 170;
+            this->height = 170;
             this->speed = ENEMY_SPEED * 0.6f;
-            this->health = 700;
+            this->health = 1000;
             this->firingRateFactor *= 0.5f;
             break;
         case EnemyType::QUICK:
              this->width = 130;
              this->height = 130;
              this->speed = ENEMY_SPEED * 1.2f;
-             this->health = 300;
+             this->health = 400;
              this->firingRateFactor *= 2.0f;
             break;
         case EnemyType::BOSS:
@@ -37,7 +37,7 @@ Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target, int
              this->height = 300;
              this->speed = ENEMY_SPEED * 0.5f;
              this->health = 10000;
-             this->firingRateFactor *= 1.5f;
+             this->firingRateFactor *= 1.0f;
              break;
     }
 }
@@ -203,7 +203,7 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
     }
 
     // --- Shooting ---
-    float shootingRangeSq = 700.0f * 700.0f; // Max range to shoot
+    float shootingRangeSq = 500.0f * 500.0f; // Max range to shoot
     // Shoots only when engaging OR circling, AND if player is within range
     if ((state == EnemyState::ENGAGING || state == EnemyState::CIRCLING) && distanceToPlayer < shootingRangeSq) {
         Uint32 shotCooldown = static_cast<Uint32>(BASE_SHOT_COOLDOWN / firingRateFactor);
@@ -237,7 +237,7 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
     }
 
     BulletType bulletType = BulletType::NORMAL;
-    int baseDamage = 20;
+    int baseDamage = 15;
 
     switch (type) {
         case EnemyType::NORMAL:
@@ -258,11 +258,9 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
     }
 
     switch (type) {
-        case EnemyType::NORMAL:
-            break;
-        case EnemyType::FAST:
-            break;
-        case EnemyType::TANK:
+            case EnemyType::NORMAL:
+            case EnemyType::FAST:
+            case EnemyType::TANK:
             {
                 enemyBullets.push_back(new Bullet(startX, startY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
             }
@@ -286,10 +284,9 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
 
             float angleLeft90 = angleToTargetRad - M_PI / 2.0f;
             float angleRight90 = angleToTargetRad + M_PI / 2.0f;
-            float sideSpeedFactor = 0.6f;
 
-            enemyBullets.push_back(new Bullet(startX, startY, cos(angleLeft90) * sideSpeedFactor, sin(angleLeft90) * sideSpeedFactor, this->bulletTexture, baseDamage, bulletType));
-            enemyBullets.push_back(new Bullet(startX, startY, cos(angleRight90) * sideSpeedFactor, sin(angleRight90) * sideSpeedFactor, this->bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleLeft90), sin(angleLeft90), this->bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(startX, startY, cos(angleRight90), sin(angleRight90), this->bulletTexture, baseDamage, bulletType));
 
             float spreadRad = 15.0f * M_PI / 180.0f;
             float angleLeftSpread = angleToTargetRad - spreadRad;

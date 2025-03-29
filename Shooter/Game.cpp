@@ -1,9 +1,15 @@
 #include "Game.h"
+#include "Player.h"
 #include "Enemy.h"
-#include <iostream>
-#include <cmath>
-#include <algorithm>
+#include "Obstacle.h"
+#include "Orb.h"
+#include "Bullet.h"
+#include "StageManager.h"
 #include <vector>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <algorithm>
 
 Game::Game() : window(nullptr), renderer(nullptr), isRunning(false), player(nullptr),
                lastEnemySpawnTime(0),
@@ -18,20 +24,20 @@ Game::~Game() {
 }
 
 bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bool fullscreen) {
-    // 1. Initialize SDL Core FIRST
+    // 1. Khoi tao SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // 2. Initialize SDL_image (after SDL_Init)
+    // 2. Khoi tao SDL_image
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
         std::cerr << "IMG_Init Error: " << IMG_GetError() << std::endl;
         SDL_Quit();
         return false;
     }
 
-    // 3. Initialize SDL_ttf (after SDL_Init)
+    // 3. Khoi tao SDL_ttf
     if (TTF_Init() == -1) {
         std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
         IMG_Quit();
@@ -39,7 +45,7 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
         return false;
     }
 
-    // 4. Create Window
+    // 4. Khoi tao cua so
     Uint32 flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
     window = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
     if (!window) {
@@ -50,7 +56,7 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
         return false;
     }
 
-    // 5. Create Renderer (Added VSync flag for smoother rendering)
+    // 5. Tao Renderer
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
@@ -61,11 +67,11 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
         return false;
     }
 
-    // 6. Calculate Bullet Render Offsets (Relative to screen dimensions)
+    // 6. Vi tri vien dan
     bulletRenderOffsetX = SCREEN_WIDTH / 2;
     bulletRenderOffsetY = SCREEN_HEIGHT / 2;
 
-    // 7. Load Textures (Check *all* textures)
+    // 7. Load texture
     playerTex = IMG_LoadTexture(renderer, "assets/player1.png");
 
     bulletTexNormal = IMG_LoadTexture(renderer, "assets/bullet_normal.png");
@@ -88,22 +94,21 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
 
     orbTexture = IMG_LoadTexture(renderer, "assets/orb.png");
 
-    // Check ALL textures loaded
+    // 8. Kiem tra load texture
     if (!playerTex || !neutralObstacleTexture || !hostileObstacleTexture || !backgroundTexture || !orbTexture) {
         std::cerr << "Failed to load one or more textures: " << IMG_GetError() << std::endl;
         return false;
     }
     if (backgroundTexture) { SDL_QueryTexture(backgroundTexture, NULL, NULL, &backgroundWidth, &backgroundHeight); }
 
-    // 8. Load Font (Check return value)
+    // 9. Khoi tao phong chu
     uiFont = TTF_OpenFont("assets/arial.ttf", 24);
     if (!uiFont) {
-        // Log the error, but maybe don't exit immediately unless UI is critical
         std::cerr << "Warning: Failed to load font: assets/arial.ttf Error: " << TTF_GetError() << std::endl;
     }
-    textColor = { 255, 255, 255, 255 }; // White
+    textColor = { 255, 255, 255, 255 };
 
-    // 10. Seed Random Number Generator (if using rand()) - Do this ONCE
+    // 10. So ngau nhien
     srand(static_cast<unsigned int>(time(NULL)));
 
     currentState = GameState::MAIN_MENU;
@@ -113,11 +118,11 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
     return true;
 }
 
-// RenderEndCredits and RenderPlayingUI remain largely the same as previous version
+// Ham render van ban
 void Game::RenderText(const std::string& text, int x, int y, bool centered, SDL_Color color) {
-    if (!uiFont || text.empty()) return; // Added check for empty text
+    if (!uiFont || text.empty()) return;
 
-    SDL_Surface* textSurface = TTF_RenderText_Solid(uiFont, text.c_str(), color); // Use passed color
+    SDL_Surface* textSurface = TTF_RenderText_Solid(uiFont, text.c_str(), color);
     if (!textSurface) { std::cerr << "TTF_RenderText Error: " << TTF_GetError() << std::endl; return; }
 
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
@@ -134,31 +139,31 @@ void Game::RenderText(const std::string& text, int x, int y, bool centered, SDL_
 }
 
 void Game::SpawnEnemy(int count) {
-    // --- Get Stage Data ---
+    // Man choi
     const StageData& currentStage = stageManager.GetCurrentStageData();
-    Uint32 spawnInterval = currentStage.spawnInterval; // Use interval from stage data
+    Uint32 spawnInterval = currentStage.spawnInterval; // Thoi gian 1 lan spawn
 
     Uint32 currentTime = SDL_GetTicks();
-    if (currentTime - lastEnemySpawnTime > spawnInterval) // Use stage interval
+    if (currentTime - lastEnemySpawnTime > spawnInterval)
     {
-        int enemiesToSpawn = currentStage.baseSpawnCount; // Use base count from stage data
+        int enemiesToSpawn = currentStage.baseSpawnCount; // So luong ke dich
         for (int i = 0; i < enemiesToSpawn; ++i) {
-            // --- Determine Spawn Position ---
+            // Vi tri spawn nguoi choi
             float x = 0.0f, y = 0.0f;
-             if (!player) continue; // Skip if no player
+             if (!player) continue;
              float spawnDist = std::max(SCREEN_WIDTH, SCREEN_HEIGHT) * 0.8f;
              float angle = RandomFloat(0, 2 * M_PI);
              x = player->x + cos(angle) * spawnDist;
              y = player->y + sin(angle) * spawnDist;
 
-            // --- Determine Enemy Type using Stage Probabilities ---
+            // Chon cac loai ke dich
             EnemyType enemyType = EnemyType::NORMAL;
             int randVal = rand() % 1000;
 
-            // Check for Boss first if allowed
+            // Kiem tra stage co spawn Boss khong
             bool spawnBossAttempt = false;
             if (currentStage.canSpawnBoss && randVal < currentStage.bossSpawnChance) {
-                 // Check if a boss already exists
+                 // Chi co 1 Boss tai 1 thoi diem
                  bool bossExists = false;
                  for(const auto& existingEnemy : enemies) {
                      if(existingEnemy && existingEnemy->type == EnemyType::BOSS) {
@@ -168,24 +173,23 @@ void Game::SpawnEnemy(int count) {
                  }
                  if (!bossExists) {
                       enemyType = EnemyType::BOSS;
-                      spawnBossAttempt = true; // Mark that we decided on Boss
+                      spawnBossAttempt = true;
                  } else {
-                     // Fallback if boss exists - spawn a TANK instead
+                     // Neu khong thi spawn 1 con Tank
                      enemyType = EnemyType::TANK;
                  }
             }
 
-            // If not spawning boss, determine type based on regular probabilities
+            // Chon cac loai ke dich (Khong co Boss)
             if (!spawnBossAttempt) {
                  int cumulativeChance = 0;
                  bool typeSet = false;
-                 // Iterate through probabilities defined for the stage
                  for (const auto& pair : currentStage.spawnProbabilities) {
-                      cumulativeChance += pair.second; // Add probability for this type
+                      cumulativeChance += pair.second;
                       if (randVal < cumulativeChance) {
                            enemyType = pair.first;
                            typeSet = true;
-                           break; // Found the type for this roll
+                           break;
                       }
                  }
                  if (!typeSet) {
@@ -193,7 +197,7 @@ void Game::SpawnEnemy(int count) {
                  }
             }
 
-            // --- Select Textures based on Determined Type ---
+            // Chon texture
             SDL_Texture* selectedEnemyTexture = nullptr;
             SDL_Texture* selectedBulletTexture = nullptr;
             switch (enemyType) {
@@ -204,28 +208,29 @@ void Game::SpawnEnemy(int count) {
                 case EnemyType::BOSS:   selectedEnemyTexture = enemyTexBoss;   selectedBulletTexture = bulletTexBoss; break;
             }
 
-            // --- Validate Textures and Create Enemy ---
+            // Tao ke dich
             if (selectedEnemyTexture && selectedBulletTexture) {
                 enemies.push_back(new Enemy(x, y, selectedEnemyTexture, player, 100, 1.0f, 1.0f, this, enemyType, selectedBulletTexture));
             }
-        } // End for loop (enemiesToSpawn)
+        }
         lastEnemySpawnTime = currentTime;
-    } // End if time check
+    }
 }
 
 void Game::SpawnObstacles(int count) {
     for (int i = 0; i < count; i++) {
-        // Calculate random spawn position
+        // Vi tri bat ky
         float randX = player->x + RandomFloat(-SPAWN_RADIUS, SPAWN_RADIUS);
         float randY = player->y + RandomFloat(-SPAWN_RADIUS, SPAWN_RADIUS);
 
-        float randSize = 75 + (rand() % 100);
+        float randSize = 100 + (rand() % 125);
 
-        // Decide obstacle type
+        // Kha nang spawn
         ObstacleType type = (rand() % 100 < 80) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
 
-        // Select texture and health based on type
+        // Chon texture
         SDL_Texture* tex = nullptr;
+        SDL_Texture* obsBulletTex = nullptr;
         int obstacleHealth = 0;
         if (type == ObstacleType::NEUTRAL) {
             tex = neutralObstacleTexture;
@@ -233,17 +238,19 @@ void Game::SpawnObstacles(int count) {
         } else {
             tex = hostileObstacleTexture;
             obstacleHealth = 200;
+            obsBulletTex = bulletTexNormal;
         }
 
-        // Create the obstacle instance
+        // Tao chuong ngoai vat
         if (tex) {
-            obstacles.push_back(new Obstacle(randX, randY, randSize, randSize, tex, type, obstacleHealth));
+            obstacles.push_back(new Obstacle(randX, randY, randSize, randSize, tex, type, obstacleHealth, obsBulletTex));
         } else {
             std::cerr << "Warning: Could not determine texture for obstacle type." << std::endl;
         }
     }
 }
 
+// Ham tao so ngau nhien
 float Game::RandomFloat(float min, float max) {
     return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
 }
@@ -264,48 +271,42 @@ void Game::StartNewGame() {
         player->health = player->maxHealth;
         player->level = 1;
         player->experience = 0;
-        player->experienceToNextLevel = 100;
+        player->experienceToNextLevel = 50;
         player->bulletType = BulletType::NORMAL;
         player->shootingPattern = ShootingPattern::SINGLE;
-        player->firingRateFactor = 1.0f;
+        player->firingRateFactor = 4.0f;
     }
     stageManager.StartGame();
-    if (stageManager.GetCurrentStageNumber() <= 0) { /* Error */ isRunning = false; return; }
+    if (stageManager.GetCurrentStageNumber() <= 0) { isRunning = false; return; }
 
     currentState = GameState::PLAYING;
 }
 
-// --- Game Flow Helper ---
 void Game::ResetGameData() {
     std::cout << "Resetting game data..." << std::endl;
-    // Delete bullets
+
     for (auto b : bullets) delete b;
     bullets.clear();
+
     for (auto eb : enemyBullets) delete eb;
     enemyBullets.clear();
 
-    // Delete enemies
     for (auto e : enemies) delete e;
     enemies.clear();
 
-    // Delete obstacles
     for (auto o : obstacles) delete o;
     obstacles.clear();
 
-    // Delete orbs
     for (auto orb : orbs) delete orb;
     orbs.clear();
 
-    // Reset timers/counters related to gameplay
     lastEnemySpawnTime = 0;
-    // Don't delete/recreate player here unless necessary, reset state instead
 }
 
-// --- Game Flow Helper ---
 void Game::ReturnToMenu() {
-    ResetGameData(); // Clear game objects
+    ResetGameData();
     currentState = GameState::MAIN_MENU;
-    selectedMenuOption = 0; // Reset menu selection
+    selectedMenuOption = 0;
     std::cout << "Returning to Main Menu." << std::endl;
 }
 
@@ -326,26 +327,23 @@ void Game::HandleEvents() {
             isRunning = false; return;
         }
 
-        // Global Pause Key (e.g., P key) - check regardless of state (except maybe menu?)
+        // Dung game bang nut "P"
         if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_p) {
              if (currentState == GameState::PLAYING || currentState == GameState::PAUSED) {
                   TogglePause();
-                  // Consume the event so state-specific handlers don't also process 'P'
                   continue;
              }
         }
 
 
-        // State-Specific Input Handling
+        // Cac phim chuc nang
         switch (currentState) {
             case GameState::MAIN_MENU: HandleMenuInput(event); break;
             case GameState::PLAYING:
-                // Escape to menu is handled here
                  if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
                       ReturnToMenu();
-                      continue; // Skip continuous input check for this frame
+                      continue;
                  }
-                 // Continuous input handled below event loop
                 break;
             case GameState::PAUSED:
                  HandlePausedInput(event);
@@ -355,7 +353,6 @@ void Game::HandleEvents() {
         }
     }
 
-    // Handle continuous input ONLY for PLAYING state
     if (currentState == GameState::PLAYING) {
         const Uint8* keystate = SDL_GetKeyboardState(NULL);
         HandlePlayingInput(keystate);
@@ -367,24 +364,21 @@ void Game::HandleMenuInput(SDL_Event& event) {
          switch(event.key.keysym.sym) {
              case SDLK_UP:
              case SDLK_w:
-                  selectedMenuOption = (selectedMenuOption - 1 + 2) % 2; // Cycle up (2 options)
-                  // Play menu sound effect?
+                  selectedMenuOption = (selectedMenuOption - 1 + 2) % 2;
                   break;
              case SDLK_DOWN:
              case SDLK_s:
-                  selectedMenuOption = (selectedMenuOption + 1) % 2; // Cycle down (2 options)
-                  // Play menu sound effect?
+                  selectedMenuOption = (selectedMenuOption + 1) % 2;
                   break;
-             case SDLK_RETURN: // Enter key
+             case SDLK_RETURN:
              case SDLK_SPACE:
-                  if (selectedMenuOption == 0) { // Start Game
+                  if (selectedMenuOption == 0) {
                        StartNewGame();
-                  } else if (selectedMenuOption == 1) { // Quit
+                  } else if (selectedMenuOption == 1) {
                        isRunning = false;
                   }
-                  // Play selection sound effect?
                   break;
-             case SDLK_ESCAPE: // Escape also quits from menu
+             case SDLK_ESCAPE:
                   isRunning = false;
                   break;
          }
@@ -392,20 +386,18 @@ void Game::HandleMenuInput(SDL_Event& event) {
 }
 
 void Game::HandlePlayingInput(const Uint8* keystate) {
-    // Delegate continuous input to player
     if (player) {
         player->HandleInput(keystate, bullets);
     }
-    // Note: Escape key press for returning to menu is handled in the main HandleEvents loop
 }
 
 void Game::HandlePausedInput(SDL_Event& event) {
      if (event.type == SDL_KEYDOWN) {
          switch(event.key.keysym.sym) {
-             case SDLK_p: // P key handled globally, but catch here too just in case
-                  TogglePause(); // Unpause
+             case SDLK_p:
+                  TogglePause();
                   break;
-             case SDLK_ESCAPE: // Escape from pause returns to Menu
+             case SDLK_ESCAPE:
                   ReturnToMenu();
                   break;
          }
@@ -415,11 +407,11 @@ void Game::HandlePausedInput(SDL_Event& event) {
 void Game::HandleGameOverInput(SDL_Event& event) {
      if (event.type == SDL_KEYDOWN) {
          switch(event.key.keysym.sym) {
-             case SDLK_RETURN: // Enter to return to menu
+             case SDLK_RETURN:
              case SDLK_SPACE:
                   ReturnToMenu();
                   break;
-             case SDLK_ESCAPE: // Escape to quit
+             case SDLK_ESCAPE:
                   isRunning = false;
                   break;
          }
@@ -428,7 +420,6 @@ void Game::HandleGameOverInput(SDL_Event& event) {
 
 void Game::HandleCreditsInput(SDL_Event& event) {
      if (event.type == SDL_KEYDOWN) {
-         // Any key press (or specific keys) returns to menu
          switch(event.key.keysym.sym) {
              case SDLK_RETURN:
              case SDLK_SPACE:
@@ -440,46 +431,42 @@ void Game::HandleCreditsInput(SDL_Event& event) {
 }
 
 
-// --- Update (Top Level) ---
 void Game::Update() {
-     if (!isRunning) return; // Skip update if not running
+     if (!isRunning) return;
 
-     // State-Specific Updates
      switch (currentState) {
          case GameState::MAIN_MENU:
-             // No updates needed for simple menu usually
              break;
          case GameState::PLAYING:
-             UpdatePlayingState(); // Contains the main game logic loop
+             UpdatePlayingState();
              break;
          case GameState::PAUSED:
              break;
          case GameState::GAME_OVER:
-             // No updates needed for static game over screen
              break;
          case GameState::CREDITS:
-             UpdateCreditsState(); // Handles scrolling, potentially ending credits
+             UpdateCreditsState();
              break;
      }
 }
 
 void Game::UpdatePlayingState() {
 
-    if (!player) { currentState = GameState::GAME_OVER; return; } // Game over if player disappears
+    if (!player) { currentState = GameState::GAME_OVER; return; }
 
-    // --- Stage Advancement Check (Do this early?) ---
+    // --- Stage Advancement Check ---
     if (stageManager.ShouldAdvanceStage()) {
         stageManager.AdvanceStage(player);
         if (stageManager.IsGameWon()) {
             currentState = GameState::CREDITS;
             creditsScrollY = SCREEN_HEIGHT;
             creditsStartTime = SDL_GetTicks();
-            ResetGameData(); // Clear game objects for credits screen
-            return; // Exit playing state update
+            ResetGameData();
+            return;
         }
     }
 
-    // --- 1. Despawn Out-of-Range Obstacles --- (Same as before)
+    // --- 1. Despawn Out-of-Range Obstacles ---
     for (auto it = obstacles.begin(); it != obstacles.end();) {
         Obstacle* obs = *it;
         float dx = obs->x - player->x;
@@ -515,12 +502,12 @@ void Game::UpdatePlayingState() {
 
         // 2. Check if the cell is occupied.
         if (!obstacleGrid[gridX][gridY]) {
-            // 3. JITTER the cell's position. This is the key!
-            float cellSize = (2.0f * SPAWN_RADIUS) / NUM_GRID_CELLS; // Width of each cell
-            float cellX = player->x - SPAWN_RADIUS + gridX * cellSize;  // Top-left corner of cell
+            // 3. JITTER the cell's position.
+            float cellSize = (2.0f * SPAWN_RADIUS) / NUM_GRID_CELLS;
+            float cellX = player->x - SPAWN_RADIUS + gridX * cellSize;
             float cellY = player->y - SPAWN_RADIUS + gridY * cellSize;
 
-            // Add a random offset *within* the cell size.  Up to half the cell size in each direction.
+            // Add a random offset *within* the cell size.
             float jitterX = RandomFloat(-cellSize * 0.5f, cellSize * 0.5f);
             float jitterY = RandomFloat(-cellSize * 0.5f, cellSize * 0.5f);
 
@@ -529,15 +516,15 @@ void Game::UpdatePlayingState() {
             float spawnY = cellY + jitterY;
             float randSize = 50 + (rand() % 100); // Random size
 
-			// 5. Poisson-Disc Check (Simplified): Ensure minimum distance from *other* obstacles.
+			// 5. Ensure minimum distance from *other* obstacles.
             bool tooClose = false;
             for (const auto& otherObs : obstacles) {
                 float dx = spawnX - otherObs->x;
                 float dy = spawnY - otherObs->y;
                 float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < MIN_SEPARATION_DISTANCE) {  // Use your constant.
+                if (dist < MIN_SEPARATION_DISTANCE) {
                     tooClose = true;
-                    break; // No need to check other obstacles if one is too close.
+                    break;
                 }
             }
 
@@ -546,6 +533,7 @@ void Game::UpdatePlayingState() {
 				// 6. Determine obstacle type and texture
                 ObstacleType type = (rand() % 100 < 80) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
                 SDL_Texture* tex = (type == ObstacleType::NEUTRAL) ? neutralObstacleTexture : hostileObstacleTexture;
+                SDL_Texture* obsBulletTex = nullptr;
                 int obstacleHealth = 0;
                 if (type == ObstacleType::NEUTRAL) {
                     tex = neutralObstacleTexture;
@@ -553,13 +541,14 @@ void Game::UpdatePlayingState() {
                 } else {
                     tex = hostileObstacleTexture;
                     obstacleHealth = 150;
+                    obsBulletTex = bulletTexNormal;
                 }
 
 				// 7. Mark the grid cell as occupied.
                 obstacleGrid[gridX][gridY] = true;
 
 				// 8. Spawn the obstacle
-                obstacles.push_back(new Obstacle(spawnX, spawnY, randSize, randSize, tex, type, obstacleHealth));
+                obstacles.push_back(new Obstacle(spawnX, spawnY, randSize, randSize, tex, type, obstacleHealth, obsBulletTex));
                 attempts = 0;
 			}
 			else
@@ -583,24 +572,32 @@ void Game::UpdatePlayingState() {
         }
     }
 
-    // --- Player Bullets vs. Enemies and Obstacles---
-    for (auto itB = bullets.begin(); itB != bullets.end();) {
-        Bullet* bullet = *itB;
-        bullet->Update();
+    SDL_Rect playerRect = { static_cast<int>(player->x), static_cast<int>(player->y), player->width, player->height };
+    const float maxDist = std::max(SCREEN_WIDTH, SCREEN_HEIGHT) * 1.5f;
 
+    // --- Player Bullets vs. Enemies and Obstacles---
+     for (auto itB = bullets.begin(); itB != bullets.end();) {
+        Bullet* bullet = *itB;
+        if (!bullet) { itB = bullets.erase(itB); continue; } // Safety check
+
+        bullet->Update();
         bool bulletRemoved = false;
 
-        // --- Player Bullets vs. Enemies ---
-        for (auto itE = enemies.begin(); itE != enemies.end();) {
-            Enemy* enemy = *itE;
-            SDL_Rect enemyRect = {static_cast<int>(enemy->x), static_cast<int>(enemy->y), enemy->width, enemy->height};
-            SDL_Rect bulletRect = {static_cast<int>(bullet->x), static_cast<int>(bullet->y), bullet->width, bullet->height};
+        if (std::abs(bullet->x - player->x) > maxDist || std::abs(bullet->y - player->y) > maxDist){
+           bullet->active = false;
+        }
 
-            if (SDL_HasIntersection(&bulletRect, &enemyRect)) {
+        if(bullet->active) {
+            // Check vs Enemies
+            for (auto itE = enemies.begin(); itE != enemies.end();) {
+                Enemy* enemy = *itE; if (!enemy){ itE = enemies.erase(itE); continue; }
+                SDL_Rect enemyRect = {static_cast<int>(enemy->x), static_cast<int>(enemy->y), enemy->width, enemy->height};
+                SDL_Rect bulletRect = {static_cast<int>(bullet->x - bullet->width/2.0f), static_cast<int>(bullet->y - bullet->height/2.0f), bullet->width, bullet->height}; // Use centered rect
+
+                if (SDL_HasIntersection(&bulletRect, &enemyRect)) {
                     enemy->health -= bullet->damage;
                     if (enemy->health <= 0) {
                         stageManager.RecordKill();
-                        // Orb spawning logic (from previous step)
                         if (orbTexture) {
                              int orbXp = 10; int orbSize = 15;
                              switch (enemy->type) {
@@ -608,53 +605,42 @@ void Game::UpdatePlayingState() {
                                 case EnemyType::QUICK: orbXp = 20; orbSize = 25; break;
                                 case EnemyType::TANK: orbXp = 50; orbSize = 30; break;
                                 case EnemyType::BOSS: orbXp = 500; orbSize = 40; break;
-                                default: break;
                              }
                              orbs.push_back(new Orb(enemy->x + enemy->width / 2.0f, enemy->y + enemy->height / 2.0f, orbTexture, orbSize, orbXp));
                         }
-                        delete enemy;
-                        itE = enemies.erase(itE);
-                    } else {
-                        ++itE;
-                    }
+                        delete enemy; itE = enemies.erase(itE);
+                    } else { ++itE; }
                     bullet->active = false;
                     bulletRemoved = true;
-                } else {
-                    ++itE;
-                }
+                } else { ++itE; }
             }
 
-        // Only check obstacles if the bullet hasn't already hit an enemy
-        if (!bulletRemoved) {
-            // --- Player Bullets vs. Obstacles ---
-            for (auto itO = obstacles.begin(); itO != obstacles.end();) {
-                Obstacle* obstacle = *itO;
-                SDL_Rect obstacleRect = {static_cast<int>(obstacle->x), static_cast<int>(obstacle->y), static_cast<int>(obstacle->width), static_cast<int>(obstacle->height)};
-                SDL_Rect bulletRect = {static_cast<int>(bullet->x), static_cast<int>(bullet->y), bullet->width, bullet->height};
+            // Check vs Obstacles
+            if (!bulletRemoved) {
+                for (auto itO = obstacles.begin(); itO != obstacles.end();) {
+                    Obstacle* obstacle = *itO; if (!obstacle) { itO = obstacles.erase(itO); continue; }
+                    // Use GetRect
+                    SDL_Rect obstacleRect = obstacle->GetRect();
+                    SDL_Rect bulletRect = {static_cast<int>(bullet->x - bullet->width/2.0f), static_cast<int>(bullet->y - bullet->height/2.0f), bullet->width, bullet->height};
 
-                if (SDL_HasIntersection(&bulletRect, &obstacleRect)) {
-                    obstacle->TakeDamage(bullet->damage); // Use TakeDamage
-                    bullet->active = false;
-                    bulletRemoved = true; // Mark as removed
+                    if (SDL_HasIntersection(&bulletRect, &obstacleRect)) {
+                        obstacle->TakeDamage(bullet->damage);
+                        bullet->active = false;
+                        bulletRemoved = true;
 
-                    if (obstacle->health <= 0) {
-                        delete obstacle;
-                        itO = obstacles.erase(itO);
+                        if (obstacle->health <= 0 && obstacle->type != ObstacleType::NEUTRAL) {
+                            delete obstacle;
+                            itO = obstacles.erase(itO);
+                        } else {
+                            ++itO;
+                        }
                     } else {
                         ++itO;
                     }
-                    break; // Exit obstacle loop after collision
-                } else {
-                    ++itO;
                 }
             }
         }
 
-        if (bullet->x < player->x - SCREEN_WIDTH|| bullet->x > player->x + SCREEN_WIDTH || bullet->y < player->y - SCREEN_HEIGHT || bullet->y > player->y + SCREEN_HEIGHT){
-           bullet->active = false;
-        }
-
-        // Remove bullet AFTER checking against both enemies and obstacles
         if (!bullet->active) {
             delete bullet;
             itB = bullets.erase(itB);
@@ -662,36 +648,71 @@ void Game::UpdatePlayingState() {
             ++itB;
         }
     }
-    // --- Enemy Bullets vs. Player ---
+
+    // --- Enemy Bullets vs. Player AND Obstacle ---
     for (auto it = enemyBullets.begin(); it != enemyBullets.end();) {
         Bullet* bullet = *it;
-        bullet->Update();
-        SDL_Rect bulletRect = {static_cast<int>(bullet->x), static_cast<int>(bullet->y), bullet->width, bullet->height};
-        SDL_Rect playerRect = {static_cast<int>(player->x), static_cast<int>(player->y), player->width, player->height};
-        if (SDL_HasIntersection(&bulletRect, &playerRect))
-        {
-            player->TakeDamage(bullet->damage);
-            std::cout << "Player hit! Health: " << player->health << std::endl;
+        if (!bullet) { it = enemyBullets.erase(it); continue; }
 
-            if (player->health <= 0) {
-                std::cout << "Game Over! Player health depleted." << std::endl;
-                currentState = GameState::GAME_OVER;
-                return;
+        bullet->Update();
+        bool bulletRemoved  = false;
+
+        // Check Bounds
+        if (std::abs(bullet->x - player->x) > maxDist || std::abs(bullet->y - player->y) > maxDist) {
+            bulletRemoved  = true;
+        } else {
+            // Check vs Player
+            SDL_Rect bulletRect = {static_cast<int>(bullet->x - bullet->width/2.0f), static_cast<int>(bullet->y - bullet->height/2.0f), bullet->width, bullet->height};
+            if (SDL_HasIntersection(&bulletRect, &playerRect)) {
+                player->TakeDamage(bullet->damage);
+                if (player->health <= 0) {currentState = GameState::GAME_OVER; delete bullet; it = enemyBullets.erase(it); return; }
+                bulletRemoved  = true;
             }
+
+            if (!bulletRemoved ) {
+                for (auto itO = obstacles.begin(); itO != obstacles.end();) {
+                     Obstacle* obstacle = *itO;
+                     if (!obstacle) { itO = obstacles.erase(itO); continue; }
+
+                     SDL_Rect obstacleRect = obstacle->GetRect();
+                     if (SDL_HasIntersection(&bulletRect, &obstacleRect)) {
+                         obstacle->TakeDamage(bullet->damage);
+                         bulletRemoved  = true;
+
+                         if (obstacle->health <= 0 && obstacle->type != ObstacleType::NEUTRAL) {
+                              delete obstacle;
+                              itO = obstacles.erase(itO); // Erase obstacle
+                         } else {
+                              ++itO;
+                         }
+                         break;
+                     } else {
+                         ++itO;
+                     }
+                }
+            }
+        }
+
+        // Cleanup
+        if (bulletRemoved ) {
             delete bullet;
             it = enemyBullets.erase(it);
         } else {
             ++it;
         }
     }
+
     // --- Player vs. Obstacles (Collision) ---
-    SDL_Rect playerRect = { (int)player->x, (int)player->y, player->width, player->height };
+    playerRect = { (int)player->x, (int)player->y, player->width, player->height };
+    Uint32 currentTimeForObsDamage = SDL_GetTicks();
+    static Uint32 lastObstacleDamageTime = 0;
+    const Uint32 OBSTACLE_DAMAGE_COOLDOWN = 1000;
+
     for (auto itO = obstacles.begin(); itO != obstacles.end();) {
         Obstacle* obstacle = *itO;
         SDL_Rect obstacleRect = obstacle->GetRect();
         if (SDL_HasIntersection(&playerRect, &obstacleRect))
         {
-            //Simple push-back collision resolution:
             //Calculate overlap in x and y direction
             int overlapX = 0;
             int overlapY = 0;
@@ -716,7 +737,7 @@ void Game::UpdatePlayingState() {
                 overlapY = -(obstacleRect.y + obstacleRect.h - playerRect.y);
             }
 
-            //Move the player by the smallest overlap
+            // Move the player by the smallest overlap
             if(abs(overlapX) < abs(overlapY))
             {
                 player->x -= overlapX;
@@ -725,18 +746,16 @@ void Game::UpdatePlayingState() {
             {
                 player->y -= overlapY;
             }
-            // --- Obstacle damage to Player ---
-            if (obstacle->type == ObstacleType::HOSTILE) //Only take hit when the obstacle is hostile
-            {
-                player->TakeDamage(10); // Reduce player health (adjust damage as needed)
-                if (player->health <= 0) {
-                    std::cout << "Game Over! Player hit by obstacle." << std::endl;
-                    currentState = GameState::GAME_OVER;
-                    return;
+            // Hostile Damage
+            if (obstacle->type == ObstacleType::HOSTILE) {
+                 if (currentTimeForObsDamage - lastObstacleDamageTime > OBSTACLE_DAMAGE_COOLDOWN) {
+                      player->TakeDamage(20);
+                      lastObstacleDamageTime = currentTimeForObsDamage;
+                      if (player->health <= 0) { currentState = GameState::GAME_OVER; return; }
                  }
             }
         }
-         ++itO; //Always increment since there's no removal here
+         ++itO;
     }
 
     // --- Update Enemies ---
@@ -799,10 +818,9 @@ void Game::UpdateCreditsState() {
 }
 
 void Game::Render() {
-    SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255); // Default background
+    SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255);
     SDL_RenderClear(renderer);
 
-    // State-Specific Rendering
     switch (currentState) {
         case GameState::MAIN_MENU:
             RenderMainMenu();
@@ -824,14 +842,13 @@ void Game::Render() {
     SDL_RenderPresent(renderer);
 }
 
-// --- State-Specific Render Helpers ---
 void Game::RenderMainMenu() {
     if (menuBackgroundTexture) {
         SDL_RenderCopy(renderer, menuBackgroundTexture, NULL, NULL);
     }
 
-    // Render Title (using RenderText helper which centers)
-    RenderText("SPACE SHOOTER", 0, SCREEN_HEIGHT / 5, true, {100, 180, 255, 255}); // Title Color
+    // Render Title
+    RenderText("SPACE SHOOTER", 0, SCREEN_HEIGHT / 5, true, {100, 180, 255, 255});
 
     // Menu Options
     SDL_Color colorStart = (selectedMenuOption == 0) ? highlightColor : textColor;
@@ -841,17 +858,17 @@ void Game::RenderMainMenu() {
     std::string quitText = (selectedMenuOption == 1) ? "> Quit Game <" : "  Quit Game  ";
 
     RenderText(startText, 0, SCREEN_HEIGHT / 2 + 0, true, colorStart);
-    RenderText(quitText, 0, SCREEN_HEIGHT / 2 + 60, true, colorQuit); // Increased spacing
+    RenderText(quitText, 0, SCREEN_HEIGHT / 2 + 60, true, colorQuit);
 
     // Instructions
-    RenderText("W/S or UP/DOWN | ENTER to Select | ESC to Quit", 0, SCREEN_HEIGHT - 60, true, {180, 180, 180, 255}); // Darker gray
+    RenderText("W/S or UP/DOWN | ENTER to Select | ESC to Quit", 0, SCREEN_HEIGHT - 60, true, {180, 180, 180, 255});
 }
 
 void Game::RenderPlayingState() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);  //Xoa man hinh
+        SDL_RenderClear(renderer);  // Clear window
 
-        // Draw background
+        // Background
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 int bgX = (-static_cast<int>(player->x) % backgroundWidth) + (i * backgroundWidth);
@@ -862,7 +879,6 @@ void Game::RenderPlayingState() {
         }
 
         if (player) {
-         // Render order matters (background -> obstacles -> orbs -> enemies -> bullets -> player)
          for (auto obs : obstacles) { if(obs) obs->Render(renderer, player); }
          for (auto orb : orbs) { if(orb) orb->Render(renderer, player); }
          for (auto enemy : enemies) { if(enemy) enemy->Render(renderer, player); }
@@ -871,40 +887,40 @@ void Game::RenderPlayingState() {
          player->Render(renderer);
      }
 
-     // --- Draw Gameplay UI ---
+     // Game UI
      RenderPlayingUI();
 }
 
 
 void Game::RenderPlayingUI() {
-     if (!uiFont || !player) return; // Need font and player
+     if (!uiFont || !player) return;
 
      int barX = 10;
-     int barW = 220; // Wider bars
-     int barH = 18;  // Slightly taller bars
+     int barW = 220;
+     int barH = 18;
      int spacing = 5;
 
      // --- Health Bar ---
      int healthBarY = 10;
      float healthPercent = (player->maxHealth > 0) ? static_cast<float>(player->health) / player->maxHealth : 0.0f;
      healthPercent = std::clamp(healthPercent, 0.0f, 1.0f);
-     SDL_Color healthColor = {static_cast<Uint8>(200 * (1.0f - healthPercent)), static_cast<Uint8>(200 * healthPercent), 50, 255}; // Red to Green gradient
+     SDL_Color healthColor = {static_cast<Uint8>(200 * (1.0f - healthPercent)), static_cast<Uint8>(200 * healthPercent), 50, 255};
 
      // Background
      SDL_Rect bgHealthBarRect = {barX, healthBarY, barW, barH};
-     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 200); // Dark transparent background
+     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 200);
      SDL_RenderFillRect(renderer, &bgHealthBarRect);
      // Fill
      SDL_Rect fillHealthBarRect = {barX, healthBarY, static_cast<int>(barW * healthPercent), barH};
      SDL_SetRenderDrawColor(renderer, healthColor.r, healthColor.g, healthColor.b, healthColor.a);
      SDL_RenderFillRect(renderer, &fillHealthBarRect);
      // Border
-     SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255); // Light gray border
+     SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255);
      SDL_RenderDrawRect(renderer, &bgHealthBarRect);
-     // Text (Health Value)
+     // Health Value
      std::stringstream ssHealth;
      ssHealth << player->health << " / " << player->maxHealth;
-     RenderText(ssHealth.str(), barX + barW + spacing, healthBarY, false, textColor); // Text next to bar
+     RenderText(ssHealth.str(), barX + barW + spacing, healthBarY, false, textColor);
 
 
      // --- Experience Bar ---
@@ -929,39 +945,39 @@ void Game::RenderPlayingUI() {
 
 
      // --- Stage Info (Top Right) ---
-     if (stageManager.GetCurrentStageNumber() > 0) { // Only show if game started
-         int stageInfoX = SCREEN_WIDTH - 180; // Position from right edge
+     if (stageManager.GetCurrentStageNumber() > 0) {
+         int stageInfoX = SCREEN_WIDTH - 180;
          int stageInfoY = 10;
          std::stringstream ssStage, ssKills;
          ssStage << "Stage: " << stageManager.GetCurrentStageNumber();
          ssKills << "Kills: " << stageManager.GetCurrentKillCount() << " / " << stageManager.GetCurrentKillGoal();
 
-         RenderText(ssStage.str(), stageInfoX, stageInfoY, false, textColor); // Align right? Or use fixed X
+         RenderText(ssStage.str(), stageInfoX, stageInfoY, false, textColor);
          RenderText(ssKills.str(), stageInfoX, stageInfoY + 25, false, textColor);
      }
 }
 
 void Game::RenderPausedScreen() {
-    // 1. Render the playing state underneath to show the paused game
+    // Paused game
     RenderPlayingState();
 
-    // 2. Draw the Dimming Overlay (same as game over)
+    // Dimming Overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150); // Slightly less dim than game over? (Adjust alpha)
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
     SDL_Rect screenRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &screenRect);
 
-    // 3. Render "PAUSED" Text and Instructions
-    RenderText("PAUSED", 0, SCREEN_HEIGHT / 3, true, {255, 255, 100, 255}); // Yellowish Paused text
+    // Render "PAUSED" Text and Instructions
+    RenderText("PAUSED", 0, SCREEN_HEIGHT / 3, true, {255, 255, 100, 255});
     RenderText("Press P to Resume", 0, SCREEN_HEIGHT / 2, true, textColor);
     RenderText("Press ESC to Return to Menu", 0, SCREEN_HEIGHT / 2 + 40, true, textColor);
 }
 
 void Game::RenderGameOver() {
-    // Render canh game sau khi thua
+    // Dimming Render
     RenderPlayingState();
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180); // Trong suot
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
     SDL_RenderFillRect(renderer, NULL);
 
     RenderText("GAME OVER", 0, SCREEN_HEIGHT / 3, true, {255, 50, 50, 255});
@@ -973,7 +989,7 @@ void Game::RenderEndCredits() {
     if (!uiFont) return;
 
     Uint32 timeElapsed = SDL_GetTicks() - creditsStartTime;
-    // Cuon tu duoi len tren sau khi thang game
+    // Scrolling from bottom
     float currentScrollPos = SCREEN_HEIGHT - (timeElapsed / 1000.0f * CREDITS_SCROLL_SPEED);
 
     std::vector<std::string> creditsText = {
@@ -981,14 +997,8 @@ void Game::RenderEndCredits() {
         "",
         "A 2D Shooter Game",
         "",
-        "--- LORE ---",
-        "In the vast expanse...",
-        "a lone pilot...",
-        "...faced the endless swarm.",
-        "Their journey ends, but the echo remains.",
-        "",
         "--- CREDITS ---",
-        "Created By: [Your Name / Alias Here]", // <<< CHANGE THIS
+        "Created By: [Ngo Minh Triet]",
         "",
         "Special Thanks:",
         "SDL Libraries",
@@ -1000,19 +1010,18 @@ void Game::RenderEndCredits() {
 
     int currentY = static_cast<int>(currentScrollPos);
     for (const std::string& line : creditsText) {
-        // Use the enhanced RenderText helper
-        RenderText(line, 0, currentY, true, textColor); // Centered, default color
+        // RenderText helper
+        RenderText(line, 0, currentY, true, textColor);
         currentY += CREDITS_LINE_HEIGHT;
     }
 
-    // Optional: Logic to return to menu after credits scroll off screen
     if (currentY < -CREDITS_LINE_HEIGHT) {
         ReturnToMenu();
     }
 }
 
 void Game::Clean() {
-    // Cleanup in reverse order of creation
+    // Cleanup
     if (player) {
         delete player;
         player = nullptr;

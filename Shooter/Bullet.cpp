@@ -3,7 +3,7 @@
 #include <iostream>
 
 Bullet::Bullet(float x, float y, float vx, float vy, SDL_Texture* selectedTexture, int baseDamage, BulletType type)
-    : x(x), y(y), vx(vx), vy(vy), width(20), height(20), active(true), texture(selectedTexture), type(type)
+    : x(x), y(y), vx(vx), vy(vy), width(30), height(30), active(true), texture(selectedTexture), type(type)
     {
         float damageMultiplier = 1.0f;
         switch (type) {
@@ -14,17 +14,17 @@ Bullet::Bullet(float x, float y, float vx, float vy, SDL_Texture* selectedTextur
             case BulletType::POWERED:
                 this->width = 25;
                 this->height = 25;
-                damageMultiplier = 2.0f;
+                damageMultiplier = 1.5f;
                 break;
             case BulletType::SUPER_POWERED:
                 this->width = 30;
                 this->height = 30;
-                damageMultiplier = 4.0f;
+                damageMultiplier = 2.0f;
                 break;
             case BulletType::EXTREME_POWERED:
                 this->width = 35;
                 this->height = 35;
-                damageMultiplier = 8.0f;
+                damageMultiplier = 3.0f;
                 break;
         }
         damage = static_cast<int>(baseDamage * damageMultiplier);

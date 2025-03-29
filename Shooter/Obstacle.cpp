@@ -6,8 +6,8 @@
 #include <cmath>
 #include <SDL.h>
 
-Obstacle::Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType type, int health)
-    : x(x), y(y), width(w), height(h), texture(tex), type(type), health(health), initialY(y), angle(0.0f), lastShotTime(0) {}
+Obstacle::Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType type, int health, SDL_Texture* bulletTex)
+    : x(x), y(y), width(w), height(h), texture(tex), bulletTexture((type == ObstacleType::HOSTILE) ? bulletTex : nullptr), type(type), health(health), initialY(y), angle(0.0f), lastShotTime(0) {}
 
 SDL_Rect Obstacle::GetRect() const {
     return { (int)x, (int)y, (int)width, (int)height };
@@ -15,8 +15,8 @@ SDL_Rect Obstacle::GetRect() const {
 
 void Obstacle::Render(SDL_Renderer* renderer, Player* player) {
     SDL_Rect rect = {static_cast<int>(x - player->x + SCREEN_WIDTH / 2), static_cast<int>(y - player->y + SCREEN_HEIGHT / 2), (int)width, (int)height};
-    SDL_Point center = { (int)width / 2, (int)height / 2 }; // Center for rotation
-    SDL_RenderCopyEx(renderer, texture, NULL, &rect, angle, &center, SDL_FLIP_NONE); // Use RenderCopyEx
+    SDL_Point center = { (int)width / 2, (int)height / 2 };
+    SDL_RenderCopyEx(renderer, texture, NULL, &rect, angle, &center, SDL_FLIP_NONE);
 }
 
 void Obstacle::Update(Player* player, std::vector<Bullet*>& enemyBullets, Game* game) {
@@ -40,23 +40,22 @@ void Obstacle::UpdateNeutral(Game* game) {
     float rotationChange = (rand() % 100 < 50 ? 1 : -1) * OBSTACLE_ROTATION_SPEED;
     angle += rotationChange;
 
-    // Keep angle within reasonable bounds if desired (e.g., 0-360)
+    // Keep angle 0->360
     if (angle >= 360.0f) angle -= 360.0f;
     if (angle < 0.0f) angle += 360.0f;
 }
 
 // --- Helper for Hostile Obstacle behavior ---
 void Obstacle::UpdateHostile(Player* player, std::vector<Bullet*>& enemyBullets, Game* game) {
-    float dx = player->x - x;
-    float dy = player->y - y;
-    float distanceSq = dx * dx + dy * dy; // Use squared distance for comparison (faster)
-    float shootRangeSq = 700.0f * 700.0f;
+    if (!player) return;
 
-    if (distanceSq < shootRangeSq) { // Check if player is within range
-        // Rotate towards the player
-        angle = atan2(dy, dx) * 180.0f / M_PI + 90.0f; // +90 for sprite orientation
+    float dx = player->x + player->width/2.0f - (x + width/2.0f);
+    float dy = player->y + player->height/2.0f - (y + height/2.0f);
+    float distanceSq = dx * dx + dy * dy;
+    const float shootRangeSq = 700.0f * 700.0f;
 
-        // Attempt to shoot
+    if (distanceSq < shootRangeSq) {
+        angle = atan2(dy, dx) * 180.0f / M_PI + 90.0f;
         Shoot(enemyBullets, player);
     }
 }
@@ -72,15 +71,24 @@ void Obstacle::Shoot(std::vector<Bullet*>& enemyBullets, Player* player) {
         // 2. Check Range
         if (distance < 700.0f) {
             if (distance > 0) {
-                float bulletVX = (dx / distance) * BULLET_SPEED;
-                float bulletVY = (dy / distance) * BULLET_SPEED;
+                float normDX = dx / distance;
+                float normDY = dy / distance;
+
+                float bulletVX = normDX * BULLET_SPEED;
+                float bulletVY = normDY * BULLET_SPEED;
 
                 BulletType bulletType = BulletType::NORMAL;
+                int baseDamage = 20;
 
-                float spawnX = x + width / 2;
-                float spawnY = y + height / 2;
+                float obstacleCenterX = x + width / 2.0f;
+                float obstacleCenterY = y + height / 2.0f;
 
-                enemyBullets.push_back(new Bullet(spawnX, spawnY, bulletVX, bulletVY, texture, 20, bulletType));
+                float spawnOffsetDistance = (std::max(width, height) / 2.0f) + 1.0f;
+
+                float spawnX = obstacleCenterX + normDX * spawnOffsetDistance;
+                float spawnY = obstacleCenterY + normDY * spawnOffsetDistance;
+
+                enemyBullets.push_back(new Bullet(spawnX, spawnY, bulletVX, bulletVY, bulletTexture, baseDamage, bulletType));
 
                 lastShotTime = currentTime;
             }
@@ -89,12 +97,6 @@ void Obstacle::Shoot(std::vector<Bullet*>& enemyBullets, Player* player) {
 }
 
 void Obstacle::TakeDamage(int damage) {
-    if (type == ObstacleType::NEUTRAL) {
-        std::cout << "NEUTRAL Obstacle hit! Health before: " << health << ", Damage: " << damage << std::endl;
-    }
     health -= damage;
     if (health < 0) health = 0;
-    if (type == ObstacleType::NEUTRAL) {
-        std::cout << "NEUTRAL Obstacle health after: " << health << std::endl;
-    }
 }

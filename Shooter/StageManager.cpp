@@ -13,22 +13,22 @@ void StageManager::LoadStages() {
     stages.clear();
 
     // Stage 1
-    stages.push_back({ 1, 15, 2000, 1, {{EnemyType::NORMAL, 900}, {EnemyType::FAST, 100}}, false, 0 });
+    stages.push_back({ 1, 10, 2000, 1, {{EnemyType::NORMAL, 900}, {EnemyType::FAST, 100}}, false, 0 });
 
     // Stage 2
-    stages.push_back({ 2, 30, 1800, 1, {{EnemyType::NORMAL, 600}, {EnemyType::FAST, 300}, {EnemyType::QUICK, 100}}, false, 0 });
+    stages.push_back({ 2, 20, 1800, 1, {{EnemyType::NORMAL, 600}, {EnemyType::FAST, 300}, {EnemyType::QUICK, 100}}, false, 0 });
 
     // Stage 3
-    stages.push_back({ 3, 50, 1600, 2, {{EnemyType::NORMAL, 300}, {EnemyType::FAST, 350}, {EnemyType::QUICK, 250}, {EnemyType::TANK, 100}}, false, 0 });
+    stages.push_back({ 3, 30, 1600, 2, {{EnemyType::NORMAL, 300}, {EnemyType::FAST, 350}, {EnemyType::QUICK, 250}, {EnemyType::TANK, 100}}, false, 0 });
 
     // Stage 4 (Boss Can Spawn)
-    stages.push_back({ 4, 75, 1400, 2, {{EnemyType::NORMAL, 150}, {EnemyType::FAST, 250}, {EnemyType::QUICK, 300}, {EnemyType::TANK, 290}}, true, 10 });
+    stages.push_back({ 4, 50, 1400, 2, {{EnemyType::NORMAL, 150}, {EnemyType::FAST, 250}, {EnemyType::QUICK, 340}, {EnemyType::TANK, 250}}, true, 10 });
 
     // Stage 5 (Boss Can Spawn)
-    stages.push_back({ 5, 100, 1300, 3, {{EnemyType::NORMAL, 50}, {EnemyType::FAST, 200}, {EnemyType::QUICK, 350}, {EnemyType::TANK, 380}}, true, 20 });
+    stages.push_back({ 5, 70, 1300, 3, {{EnemyType::NORMAL, 60}, {EnemyType::FAST, 230}, {EnemyType::QUICK, 400}, {EnemyType::TANK, 300}}, true, 10 });
 
     // Stage 6 (Final Stage, Boss Can Spawn)
-    stages.push_back({ 6, 150, 1200, 3, {{EnemyType::FAST, 200}, {EnemyType::QUICK, 350}, {EnemyType::TANK, 420}}, true, 30 });
+    stages.push_back({ 6, 100, 1200, 3, {{EnemyType::FAST, 200}, {EnemyType::QUICK, 350}, {EnemyType::TANK, 420}}, true, 30 });
 
     std::cout << "Loaded " << stages.size() << " stages." << std::endl;
 }

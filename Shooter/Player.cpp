@@ -4,8 +4,8 @@
 #include "Game.h"
 
 Player::Player(float x, float y, SDL_Texture* selectedTexture, int startingHealth, float speed, Game* gameInstance)
-    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(gameInstance), health(startingHealth), maxHealth(startingHealth), speed(speed), firingRateFactor(2.5f),
-    lastShotTime(0), speedMultiplier(1.0f), shootingPattern(ShootingPattern::SINGLE), level(1), experience(0), experienceToNextLevel(10), bulletType(BulletType::NORMAL) {}
+    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(gameInstance), health(startingHealth), maxHealth(startingHealth), speed(speed), firingRateFactor(4.0f),
+    lastShotTime(0), speedMultiplier(1.0f), shootingPattern(ShootingPattern::SINGLE), level(1), experience(0), experienceToNextLevel(50), bulletType(BulletType::NORMAL) {}
 
 void Player::HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets) {
     speedMultiplier = (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) ? 2.0f : 1.0f;
@@ -62,7 +62,7 @@ void Player::Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPatter
         float bulletOffsetY = height / 2.0f * sin(radianAngle);
         float bulletX = x + bulletOffsetX;
         float bulletY = y + bulletOffsetY;
-        float bulletDamage = 50;
+        float bulletDamage = 35;
 
         switch (shootingPattern) {
             case ShootingPattern::SINGLE:
@@ -107,25 +107,25 @@ void Player::LevelUp() {
     experienceToNextLevel = static_cast<int>(experienceToNextLevel * 1.5f);
     std::cout << "Player Leveled Up! Level: " << level << std::endl;
 
-    maxHealth *= 2;
+    maxHealth += maxHealth/4;
     health = maxHealth;
 
     if (level == 2) {
-        firingRateFactor *= 1.2f;
+        firingRateFactor *= 1.15f;
         shootingPattern  = ShootingPattern::DOUBLE;
         bulletType = BulletType::NORMAL;
     } else if (level == 3) {
         shootingPattern  = ShootingPattern::TRIPLE;
         bulletType = BulletType::NORMAL;
     } else if (level == 4) {
-        firingRateFactor *= 1.2f;
+        firingRateFactor *= 1.15f;
         shootingPattern  = ShootingPattern::TRIPLE;
 		bulletType = BulletType::POWERED;
 	} else if (level == 5){
         shootingPattern  = ShootingPattern::SIDEWAYS;
         bulletType = BulletType::POWERED;
     } else if (level == 6) {
-        firingRateFactor *= 1.2f;
+        firingRateFactor *= 1.15f;
         shootingPattern  = ShootingPattern::SIDEWAYS;
         bulletType = BulletType::SUPER_POWERED;
     }
