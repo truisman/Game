@@ -82,7 +82,7 @@
 	"Orb.h"
 	"Globals.h"
 
-1743177945 source:d:\game development sdl\2d shooter\shooter\bullet.cpp
+1743227816 source:d:\game development sdl\2d shooter\shooter\bullet.cpp
 	"Bullet.h"
 	"Player.h"
 	<iostream>
@@ -92,7 +92,7 @@
 	"Globals.h"
 	"Player.h"
 
-1743189742 d:\game development sdl\2d shooter\shooter\globals.h
+1743226101 d:\game development sdl\2d shooter\shooter\globals.h
 	<SDL.h>
 	<SDL_image.h>
 	<vector>
@@ -103,7 +103,7 @@
 	<ctime>
 	<random>
 
-1743189742 d:\game development sdl\2d shooter\shooter\player.h
+1743225223 d:\game development sdl\2d shooter\shooter\player.h
 	<SDL.h>
 	<vector>
 	"Bullet.h"
@@ -114,7 +114,7 @@
 	"Game.h"
 	"Globals.h"
 
-1743191254 d:\game development sdl\2d shooter\shooter\game.h
+1743227392 d:\game development sdl\2d shooter\shooter\game.h
 	<SDL.h>
 	<SDL_ttf.h>
 	<vector>
@@ -141,14 +141,14 @@
 	"Globals.h"
 	"Player.h"
 
-1743179761 source:d:\game development sdl\2d shooter\shooter\enemy.cpp
+1743234405 source:d:\game development sdl\2d shooter\shooter\enemy.cpp
 	"Enemy.h"
 	"Player.h"
 	"Obstacle.h"
 	"Game.h"
 	<iostream>
 
-1743192344 source:d:\game development sdl\2d shooter\shooter\global.cpp
+1743226101 source:d:\game development sdl\2d shooter\shooter\global.cpp
 	"Globals.h"
 
 1743157117 source:d:\game development sdl\2d shooter\shooter\obstacle.cpp
@@ -164,13 +164,13 @@
 	"Orb.h"
 	"Globals.h"
 
-1743177469 source:d:\game development sdl\2d shooter\shooter\player.cpp
+1743234896 source:d:\game development sdl\2d shooter\shooter\player.cpp
 	"Player.h"
 	"Bullet.h"
 	<iostream>
 	"Game.h"
 
-1743192201 source:d:\game development sdl\2d shooter\shooter\game.cpp
+1743227994 source:d:\game development sdl\2d shooter\shooter\game.cpp
 	"Game.h"
 	"Enemy.h"
 	<iostream>
@@ -183,7 +183,7 @@
 	<map>
 	<SDL_stdinc.h>
 
-1743189742 source:d:\game development sdl\2d shooter\shooter\stagemanager.cpp
+1743226986 source:d:\game development sdl\2d shooter\shooter\stagemanager.cpp
 	"StageManager.h"
 	"Enemy.h"
 	"Player.h"

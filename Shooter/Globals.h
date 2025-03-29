@@ -37,6 +37,8 @@ extern const int NUM_GRID_CELLS;
 extern const float MIN_SEPARATION_DISTANCE;
 extern const int ORB_SIZE;
 extern const float ORB_FADE_RATE;
+extern const float ORB_MAGNET_RADIUS;
+extern const float ORB_MAGNET_SPEED;
 extern const float CREDITS_SCROLL_SPEED;
 extern const int CREDITS_LINE_HEIGHT;
 

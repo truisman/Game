@@ -19,6 +19,7 @@ public:
     SDL_Texture* texture;
     Game* game;
     int health;
+    int maxHealth;
     float speed;
     float firingRateFactor;
     Uint32 lastShotTime;
@@ -29,7 +30,7 @@ public:
     int experienceToNextLevel;
     BulletType bulletType;
 
-    Player(float x, float y, SDL_Texture* selectedTexture, int health, float speed, Game* game);
+    Player(float x, float y, SDL_Texture* selectedTexture, int startingHealth, float speed, Game* game);
 
     void HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets);
     void Move(float moveSpeed);
@@ -38,6 +39,7 @@ public:
     void Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPattern);
     void AddExperience(int amount);
     void LevelUp();
+    void TakeDamage(int amount);
 };
 
 #endif

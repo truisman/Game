@@ -115,17 +115,17 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
 
 // RenderEndCredits and RenderPlayingUI remain largely the same as previous version
 void Game::RenderText(const std::string& text, int x, int y, bool centered, SDL_Color color) {
-    if (!uiFont) return;
+    if (!uiFont || text.empty()) return; // Added check for empty text
 
-    SDL_Surface* textSurface = TTF_RenderText_Solid(uiFont, text.c_str(), color);
-    if (!textSurface) { /* Error */ return; }
+    SDL_Surface* textSurface = TTF_RenderText_Solid(uiFont, text.c_str(), color); // Use passed color
+    if (!textSurface) { std::cerr << "TTF_RenderText Error: " << TTF_GetError() << std::endl; return; }
 
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    if (!textTexture) { /* Error */ SDL_FreeSurface(textSurface); return; }
+    if (!textTexture) { SDL_FreeSurface(textSurface); std::cerr << "CreateTexture Error: " << SDL_GetError() << std::endl; return; }
 
     SDL_Rect renderQuad = { x, y, textSurface->w, textSurface->h };
     if (centered) {
-        renderQuad.x = (SCREEN_WIDTH - textSurface->w) / 2; // Center horizontally
+        renderQuad.x = (SCREEN_WIDTH - textSurface->w) / 2;
     }
 
     SDL_FreeSurface(textSurface);
@@ -207,8 +207,7 @@ void Game::SpawnEnemy(int count) {
             // --- Validate Textures and Create Enemy ---
             if (selectedEnemyTexture && selectedBulletTexture) {
                 enemies.push_back(new Enemy(x, y, selectedEnemyTexture, player, 100, 1.0f, 1.0f, this, enemyType, selectedBulletTexture));
-            } else { /* Error message */ }
-
+            }
         } // End for loop (enemiesToSpawn)
         lastEnemySpawnTime = currentTime;
     } // End if time check
@@ -230,10 +229,10 @@ void Game::SpawnObstacles(int count) {
         int obstacleHealth = 0;
         if (type == ObstacleType::NEUTRAL) {
             tex = neutralObstacleTexture;
-            obstacleHealth = 1000;
+            obstacleHealth = 99999;
         } else {
             tex = hostileObstacleTexture;
-            obstacleHealth = 150;
+            obstacleHealth = 200;
         }
 
         // Create the obstacle instance
@@ -251,23 +250,28 @@ float Game::RandomFloat(float min, float max) {
 
 void Game::StartNewGame() {
     std::cout << "Starting New Game..." << std::endl;
-    // 1. Clear existing game objects
-    ResetGameData();
+    ResetGameData(); // Xoa du lieu game
 
-    // 2. Create Player (if doesn't exist or needs reset)
+    int startingPlayerHealth = 200;
+
+    // Khoi tao nguoi choi
     if (!player) {
-        player = new Player(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f, playerTex, 200, PLAYER_SPEED, this); // Reset health/pos
+        player = new Player(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f, playerTex, startingPlayerHealth, PLAYER_SPEED, this);
+    } else {
+        player->x = SCREEN_WIDTH / 2.0f;
+        player->y = SCREEN_HEIGHT / 2.0f;
+        player->maxHealth = startingPlayerHealth;
+        player->health = player->maxHealth;
+        player->level = 1;
+        player->experience = 0;
+        player->experienceToNextLevel = 100;
+        player->bulletType = BulletType::NORMAL;
+        player->shootingPattern = ShootingPattern::SINGLE;
+        player->firingRateFactor = 1.0f;
     }
-
-    // 3. Start Stage Manager
     stageManager.StartGame();
-    if (stageManager.GetCurrentStageNumber() <= 0) {
-         std::cerr << "Error: StageManager failed to initialize correctly for new game." << std::endl;
-         isRunning = false; // Stop if stages didn't load
-         return;
-    }
+    if (stageManager.GetCurrentStageNumber() <= 0) { /* Error */ isRunning = false; return; }
 
-    // 4. Set Game State
     currentState = GameState::PLAYING;
 }
 
@@ -300,49 +304,58 @@ void Game::ResetGameData() {
 // --- Game Flow Helper ---
 void Game::ReturnToMenu() {
     ResetGameData(); // Clear game objects
-    // Optional: Delete player object? Or just keep it and reset in StartNewGame?
-    // if(player) { delete player; player = nullptr; }
     currentState = GameState::MAIN_MENU;
     selectedMenuOption = 0; // Reset menu selection
     std::cout << "Returning to Main Menu." << std::endl;
 }
 
+void Game::TogglePause() {
+    if (currentState == GameState::PLAYING) {
+        currentState = GameState::PAUSED;
+        std::cout << "Game Paused." << std::endl;
+    } else if (currentState == GameState::PAUSED) {
+        currentState = GameState::PLAYING;
+        std::cout << "Game Resumed." << std::endl;
+    }
+}
+
 void Game::HandleEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        // Global Quit Event
         if (event.type == SDL_QUIT) {
-            isRunning = false;
-            return; // Exit event handling immediately
+            isRunning = false; return;
         }
+
+        // Global Pause Key (e.g., P key) - check regardless of state (except maybe menu?)
+        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_p) {
+             if (currentState == GameState::PLAYING || currentState == GameState::PAUSED) {
+                  TogglePause();
+                  // Consume the event so state-specific handlers don't also process 'P'
+                  continue;
+             }
+        }
+
 
         // State-Specific Input Handling
         switch (currentState) {
-            case GameState::MAIN_MENU:
-                HandleMenuInput(event);
-                break;
+            case GameState::MAIN_MENU: HandleMenuInput(event); break;
             case GameState::PLAYING:
-                // Keydown events for specific actions (pause, menu return)
-                if (event.type == SDL_KEYDOWN) {
-                     switch(event.key.keysym.sym) {
-                         case SDLK_ESCAPE: // Escape returns to menu from playing state
-                              ReturnToMenu();
-                              break;
-                         // Add other key presses like Pause here if needed
-                     }
-                }
-                // Continuous state (movement/shooting) handled separately below
+                // Escape to menu is handled here
+                 if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                      ReturnToMenu();
+                      continue; // Skip continuous input check for this frame
+                 }
+                 // Continuous input handled below event loop
                 break;
-            case GameState::GAME_OVER:
-                HandleGameOverInput(event);
-                break;
-            case GameState::CREDITS:
-                HandleCreditsInput(event);
-                break;
+            case GameState::PAUSED:
+                 HandlePausedInput(event);
+                 break;
+            case GameState::GAME_OVER: HandleGameOverInput(event); break;
+            case GameState::CREDITS: HandleCreditsInput(event); break;
         }
     }
 
-    // Handle continuous input for PLAYING state (outside event loop)
+    // Handle continuous input ONLY for PLAYING state
     if (currentState == GameState::PLAYING) {
         const Uint8* keystate = SDL_GetKeyboardState(NULL);
         HandlePlayingInput(keystate);
@@ -386,6 +399,19 @@ void Game::HandlePlayingInput(const Uint8* keystate) {
     // Note: Escape key press for returning to menu is handled in the main HandleEvents loop
 }
 
+void Game::HandlePausedInput(SDL_Event& event) {
+     if (event.type == SDL_KEYDOWN) {
+         switch(event.key.keysym.sym) {
+             case SDLK_p: // P key handled globally, but catch here too just in case
+                  TogglePause(); // Unpause
+                  break;
+             case SDLK_ESCAPE: // Escape from pause returns to Menu
+                  ReturnToMenu();
+                  break;
+         }
+     }
+}
+
 void Game::HandleGameOverInput(SDL_Event& event) {
      if (event.type == SDL_KEYDOWN) {
          switch(event.key.keysym.sym) {
@@ -425,6 +451,8 @@ void Game::Update() {
              break;
          case GameState::PLAYING:
              UpdatePlayingState(); // Contains the main game logic loop
+             break;
+         case GameState::PAUSED:
              break;
          case GameState::GAME_OVER:
              // No updates needed for static game over screen
@@ -516,12 +544,12 @@ void Game::UpdatePlayingState() {
 			if (!tooClose)
 			{
 				// 6. Determine obstacle type and texture
-                ObstacleType type = (rand() % 2 == 0) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
+                ObstacleType type = (rand() % 100 < 80) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
                 SDL_Texture* tex = (type == ObstacleType::NEUTRAL) ? neutralObstacleTexture : hostileObstacleTexture;
                 int obstacleHealth = 0;
                 if (type == ObstacleType::NEUTRAL) {
                     tex = neutralObstacleTexture;
-                    obstacleHealth = 1000;
+                    obstacleHealth = 99999;
                 } else {
                     tex = hostileObstacleTexture;
                     obstacleHealth = 150;
@@ -573,7 +601,7 @@ void Game::UpdatePlayingState() {
                     if (enemy->health <= 0) {
                         stageManager.RecordKill();
                         // Orb spawning logic (from previous step)
-                        if ((rand() % 100) < 40 && orbTexture) {
+                        if (orbTexture) {
                              int orbXp = 10; int orbSize = 15;
                              switch (enemy->type) {
                                 case EnemyType::FAST: orbXp = 15; orbSize = 20; break;
@@ -642,7 +670,7 @@ void Game::UpdatePlayingState() {
         SDL_Rect playerRect = {static_cast<int>(player->x), static_cast<int>(player->y), player->width, player->height};
         if (SDL_HasIntersection(&bulletRect, &playerRect))
         {
-            player->health -= bullet->damage;
+            player->TakeDamage(bullet->damage);
             std::cout << "Player hit! Health: " << player->health << std::endl;
 
             if (player->health <= 0) {
@@ -700,7 +728,7 @@ void Game::UpdatePlayingState() {
             // --- Obstacle damage to Player ---
             if (obstacle->type == ObstacleType::HOSTILE) //Only take hit when the obstacle is hostile
             {
-                 player->health -= 1; // Reduce player health (adjust damage as needed)
+                player->TakeDamage(10); // Reduce player health (adjust damage as needed)
                 if (player->health <= 0) {
                     std::cout << "Game Over! Player hit by obstacle." << std::endl;
                     currentState = GameState::GAME_OVER;
@@ -722,23 +750,42 @@ void Game::UpdatePlayingState() {
     }
 
     // --- Update Orbs ---
-    for (auto it = orbs.begin(); it != orbs.end();) {
-        Orb* orb = *it;
-        orb->Update();
-        SDL_Rect playerRect = {static_cast<int>(player->x), static_cast<int>(player->y), player->width, player->height};
-        SDL_Rect orbRect = orb->GetRect();
+    playerRect = { static_cast<int>(player->x), static_cast<int>(player->y), player->width, player->height }; // Update player rect again
+    const float MAGNET_RADIUS_SQ = ORB_MAGNET_RADIUS * ORB_MAGNET_RADIUS;
 
+    for (auto it = orbs.begin(); it != orbs.end(); /* manual increment */) {
+        Orb* orb = *it;
+        if (!orb) { it = orbs.erase(it); continue; }
+
+        orb->Update(); // Update fading
+
+        if (orb->alpha <= 0) { delete orb; it = orbs.erase(it); continue; } // Remove faded
+
+        // Magnet Logic
+        float dx = (player->x + player->width / 2.0f) - orb->x;
+        float dy = (player->y + player->height / 2.0f) - orb->y;
+        float distSq = dx * dx + dy * dy;
+        if (distSq < MAGNET_RADIUS_SQ && distSq > 1.0f) {
+            float dist = std::sqrt(distSq);
+            orb->x += (dx / dist) * ORB_MAGNET_SPEED; // Use constant
+            orb->y += (dy / dist) * ORB_MAGNET_SPEED; // Use constant
+        }
+
+        // Collection Check
+        SDL_Rect orbRect = orb->GetRect();
         if (SDL_HasIntersection(&playerRect, &orbRect)) {
-            player->AddExperience(10); // Add 10 experience to the player on collection
+            player->AddExperience(orb->xpValue); // <<< Use orb's value >>>
             delete orb;
             it = orbs.erase(it);
         } else {
             ++it;
         }
     }
+
     SpawnEnemy(1);
 
     if (stageManager.ShouldAdvanceStage()) {
+        player->LevelUp();
         stageManager.AdvanceStage(player);
          if (stageManager.IsGameWon()) {
              currentState  = GameState::CREDITS;
@@ -763,6 +810,9 @@ void Game::Render() {
         case GameState::PLAYING:
             RenderPlayingState();
             break;
+        case GameState::PAUSED:
+            RenderPausedScreen();
+            break;
         case GameState::GAME_OVER:
             RenderGameOver();
             break;
@@ -776,24 +826,25 @@ void Game::Render() {
 
 // --- State-Specific Render Helpers ---
 void Game::RenderMainMenu() {
-    // Optional: Render background
     if (menuBackgroundTexture) {
-        SDL_RenderCopy(renderer, menuBackgroundTexture, NULL, NULL); // Stretch to screen
-    } else {
-        // Just clear to background color (already done)
+        SDL_RenderCopy(renderer, menuBackgroundTexture, NULL, NULL);
     }
 
-    // Render Title
-    RenderText("2D SHOOTER GAME", 0, SCREEN_HEIGHT / 4, true, {200, 220, 255, 255}); // Centered, light blue
+    // Render Title (using RenderText helper which centers)
+    RenderText("SPACE SHOOTER", 0, SCREEN_HEIGHT / 5, true, {100, 180, 255, 255}); // Title Color
 
-    // Render Options
+    // Menu Options
     SDL_Color colorStart = (selectedMenuOption == 0) ? highlightColor : textColor;
     SDL_Color colorQuit = (selectedMenuOption == 1) ? highlightColor : textColor;
 
-    RenderText("Start Game", 0, SCREEN_HEIGHT / 2 + 0, true, colorStart);
-    RenderText("Quit", 0, SCREEN_HEIGHT / 2 + 50, true, colorQuit);
+    std::string startText = (selectedMenuOption == 0) ? "> Start Game <" : "  Start Game  ";
+    std::string quitText = (selectedMenuOption == 1) ? "> Quit Game <" : "  Quit Game  ";
 
-    RenderText("Use W/S or UP/DOWN to select, ENTER to confirm", 0, SCREEN_HEIGHT - 50, true, {150, 150, 150, 255});
+    RenderText(startText, 0, SCREEN_HEIGHT / 2 + 0, true, colorStart);
+    RenderText(quitText, 0, SCREEN_HEIGHT / 2 + 60, true, colorQuit); // Increased spacing
+
+    // Instructions
+    RenderText("W/S or UP/DOWN | ENTER to Select | ESC to Quit", 0, SCREEN_HEIGHT - 60, true, {180, 180, 180, 255}); // Darker gray
 }
 
 void Game::RenderPlayingState() {
@@ -826,67 +877,103 @@ void Game::RenderPlayingState() {
 
 
 void Game::RenderPlayingUI() {
-     if (uiFont && player && stageManager.GetCurrentStageNumber() > 0) {
-        // Prepare Text Strings
-        std::stringstream ssHealth, ssLevel, ssExp;
-        ssHealth << "Health: " << player->health;
-        ssLevel << "Level: " << player->level; // Assuming player has 'level' member
-        ssExp << "XP: " << player->experience << " / " << player->experienceToNextLevel; // Assuming these members
+     if (!uiFont || !player) return; // Need font and player
 
-        // Use the helper function
-        RenderText(ssHealth.str(), 10, 10); // Position: top-left
-        RenderText(ssLevel.str(), 10, 40);  // Position: below health
-        RenderText(ssExp.str(), 10, 70);   // Position: below level
+     int barX = 10;
+     int barW = 220; // Wider bars
+     int barH = 18;  // Slightly taller bars
+     int spacing = 5;
 
-        // Optional: Experience Bar
-        int barX = 10;
-        int barY = 100;
-        int barW = 200;
-        int barH = 15;
-        float xpPercent = static_cast<float>(player->experience) / player->experienceToNextLevel;
-        if (xpPercent < 0.0f) xpPercent = 0.0f;
-        if (xpPercent > 1.0f) xpPercent = 1.0f; // Clamp between 0 and 1
+     // --- Health Bar ---
+     int healthBarY = 10;
+     float healthPercent = (player->maxHealth > 0) ? static_cast<float>(player->health) / player->maxHealth : 0.0f;
+     healthPercent = std::clamp(healthPercent, 0.0f, 1.0f);
+     SDL_Color healthColor = {static_cast<Uint8>(200 * (1.0f - healthPercent)), static_cast<Uint8>(200 * healthPercent), 50, 255}; // Red to Green gradient
 
-        // Background of the bar
-        SDL_Rect bgBarRect = {barX, barY, barW, barH};
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // Dark grey
-        SDL_RenderFillRect(renderer, &bgBarRect);
+     // Background
+     SDL_Rect bgHealthBarRect = {barX, healthBarY, barW, barH};
+     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 200); // Dark transparent background
+     SDL_RenderFillRect(renderer, &bgHealthBarRect);
+     // Fill
+     SDL_Rect fillHealthBarRect = {barX, healthBarY, static_cast<int>(barW * healthPercent), barH};
+     SDL_SetRenderDrawColor(renderer, healthColor.r, healthColor.g, healthColor.b, healthColor.a);
+     SDL_RenderFillRect(renderer, &fillHealthBarRect);
+     // Border
+     SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255); // Light gray border
+     SDL_RenderDrawRect(renderer, &bgHealthBarRect);
+     // Text (Health Value)
+     std::stringstream ssHealth;
+     ssHealth << player->health << " / " << player->maxHealth;
+     RenderText(ssHealth.str(), barX + barW + spacing, healthBarY, false, textColor); // Text next to bar
 
-        // Filled portion of the bar
-        SDL_Rect fillBarRect = {barX, barY, static_cast<int>(barW * xpPercent), barH};
-        SDL_SetRenderDrawColor(renderer, 0, 200, 50, 255); // Green
-        SDL_RenderFillRect(renderer, &fillBarRect);
 
-        // Border of the bar
-        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Light grey
-        SDL_RenderDrawRect(renderer, &bgBarRect);
+     // --- Experience Bar ---
+     int xpBarY = healthBarY + barH + spacing;
+     float xpPercent = (player->experienceToNextLevel > 0) ? static_cast<float>(player->experience) / player->experienceToNextLevel : 0.0f;
+     xpPercent = std::clamp(xpPercent, 0.0f, 1.0f);
+     // Background
+     SDL_Rect bgXpBarRect = {barX, xpBarY, barW, barH};
+     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 200);
+     SDL_RenderFillRect(renderer, &bgXpBarRect);
+     // Fill (XP Color - e.g., Blue)
+     SDL_Rect fillXpBarRect = {barX, xpBarY, static_cast<int>(barW * xpPercent), barH};
+     SDL_SetRenderDrawColor(renderer, 50, 150, 255, 255);
+     SDL_RenderFillRect(renderer, &fillXpBarRect);
+     // Border
+     SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255);
+     SDL_RenderDrawRect(renderer, &bgXpBarRect);
+     // Text (Level)
+     std::stringstream ssLevel;
+     ssLevel << "Lvl: " << player->level;
+     RenderText(ssLevel.str(), barX + barW + spacing, xpBarY, false, textColor);
 
+
+     // --- Stage Info (Top Right) ---
+     if (stageManager.GetCurrentStageNumber() > 0) { // Only show if game started
+         int stageInfoX = SCREEN_WIDTH - 180; // Position from right edge
+         int stageInfoY = 10;
          std::stringstream ssStage, ssKills;
          ssStage << "Stage: " << stageManager.GetCurrentStageNumber();
          ssKills << "Kills: " << stageManager.GetCurrentKillCount() << " / " << stageManager.GetCurrentKillGoal();
 
-         RenderText(ssStage.str(), SCREEN_WIDTH - 150, 10); // Top-right
-         RenderText(ssKills.str(), SCREEN_WIDTH - 150, 40);
+         RenderText(ssStage.str(), stageInfoX, stageInfoY, false, textColor); // Align right? Or use fixed X
+         RenderText(ssKills.str(), stageInfoX, stageInfoY + 25, false, textColor);
      }
 }
 
-void Game::RenderGameOver() {
-     // Render a faded version of the playing state underneath?
-     RenderPlayingState();
-     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180); // Semi-transparent black overlay
-     SDL_RenderFillRect(renderer, NULL); // Cover screen
+void Game::RenderPausedScreen() {
+    // 1. Render the playing state underneath to show the paused game
+    RenderPlayingState();
 
-     // Render centered "GAME OVER" text
-     RenderText("GAME OVER", 0, SCREEN_HEIGHT / 2 - 40, true, {0, 255, 0, 255}); // Red
-     RenderText("Press ENTER or SPACE to return to Menu", 0, SCREEN_HEIGHT / 2 + 20, true);
+    // 2. Draw the Dimming Overlay (same as game over)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150); // Slightly less dim than game over? (Adjust alpha)
+    SDL_Rect screenRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &screenRect);
+
+    // 3. Render "PAUSED" Text and Instructions
+    RenderText("PAUSED", 0, SCREEN_HEIGHT / 3, true, {255, 255, 100, 255}); // Yellowish Paused text
+    RenderText("Press P to Resume", 0, SCREEN_HEIGHT / 2, true, textColor);
+    RenderText("Press ESC to Return to Menu", 0, SCREEN_HEIGHT / 2 + 40, true, textColor);
+}
+
+void Game::RenderGameOver() {
+    // Render canh game sau khi thua
+    RenderPlayingState();
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180); // Trong suot
+    SDL_RenderFillRect(renderer, NULL);
+
+    RenderText("GAME OVER", 0, SCREEN_HEIGHT / 3, true, {255, 50, 50, 255});
+    RenderText("Press ENTER or SPACE to return to Menu", 0, SCREEN_HEIGHT / 2, true, textColor);
+    RenderText("Press ESC to Quit", 0, SCREEN_HEIGHT / 2 + 40, true, textColor);
 }
 
 void Game::RenderEndCredits() {
     if (!uiFont) return;
 
     Uint32 timeElapsed = SDL_GetTicks() - creditsStartTime;
-    // Correct calculation for scrolling UP from bottom
+    // Cuon tu duoi len tren sau khi thang game
     float currentScrollPos = SCREEN_HEIGHT - (timeElapsed / 1000.0f * CREDITS_SCROLL_SPEED);
 
     std::vector<std::string> creditsText = {

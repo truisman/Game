@@ -3,8 +3,8 @@
 #include <iostream>
 #include "Game.h"
 
-Player::Player(float x, float y, SDL_Texture* selectedTexture, int health, float speed, Game* gameInstance)
-    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(gameInstance), health(health), speed(speed), firingRateFactor(3.0f),
+Player::Player(float x, float y, SDL_Texture* selectedTexture, int startingHealth, float speed, Game* gameInstance)
+    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(gameInstance), health(startingHealth), maxHealth(startingHealth), speed(speed), firingRateFactor(2.5f),
     lastShotTime(0), speedMultiplier(1.0f), shootingPattern(ShootingPattern::SINGLE), level(1), experience(0), experienceToNextLevel(10), bulletType(BulletType::NORMAL) {}
 
 void Player::HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets) {
@@ -56,13 +56,13 @@ void Player::Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPatter
         }
 
         float radianAngle = (angle - 90) * M_PI / 180.0f;
-        float bulletVX = BULLET_SPEED * cos(radianAngle);
-        float bulletVY = BULLET_SPEED * sin(radianAngle);
+        float bulletVX = BULLET_SPEED * cos(radianAngle) * speedMultiplier;
+        float bulletVY = BULLET_SPEED * sin(radianAngle) * speedMultiplier;
         float bulletOffsetX = width / 2.0f * cos(radianAngle);
         float bulletOffsetY = height / 2.0f * sin(radianAngle);
         float bulletX = x + bulletOffsetX;
         float bulletY = y + bulletOffsetY;
-        float bulletDamage = 35;
+        float bulletDamage = 50;
 
         switch (shootingPattern) {
             case ShootingPattern::SINGLE:
@@ -83,8 +83,8 @@ void Player::Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPatter
                 float sidewaysAngleLeft = (angle - 90 - 90) * M_PI / 180.0f;
                 float sidewaysAngleRight = (angle - 90 + 90) * M_PI / 180.0f;
 
-                bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos(sidewaysAngleLeft) * speedMultiplier * 0.5f, BULLET_SPEED * sin(sidewaysAngleLeft) * speedMultiplier * 0.5f, selectedBulletTexture, bulletDamage, bulletType));
-                bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos(sidewaysAngleRight) * speedMultiplier * 0.5f, BULLET_SPEED * sin(sidewaysAngleRight) * speedMultiplier * 0.5f, selectedBulletTexture, bulletDamage, bulletType));
+                bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos(sidewaysAngleLeft) * speedMultiplier, BULLET_SPEED * sin(sidewaysAngleLeft) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
+                bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos(sidewaysAngleRight) * speedMultiplier, BULLET_SPEED * sin(sidewaysAngleRight) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
 
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
@@ -107,12 +107,14 @@ void Player::LevelUp() {
     experienceToNextLevel = static_cast<int>(experienceToNextLevel * 1.5f);
     std::cout << "Player Leveled Up! Level: " << level << std::endl;
 
+    maxHealth *= 2;
+    health = maxHealth;
+
     if (level == 2) {
         firingRateFactor *= 1.2f;
         shootingPattern  = ShootingPattern::DOUBLE;
         bulletType = BulletType::NORMAL;
     } else if (level == 3) {
-        firingRateFactor *= 1.2f;
         shootingPattern  = ShootingPattern::TRIPLE;
         bulletType = BulletType::NORMAL;
     } else if (level == 4) {
@@ -120,7 +122,6 @@ void Player::LevelUp() {
         shootingPattern  = ShootingPattern::TRIPLE;
 		bulletType = BulletType::POWERED;
 	} else if (level == 5){
-	    firingRateFactor *= 1.2f;
         shootingPattern  = ShootingPattern::SIDEWAYS;
         bulletType = BulletType::POWERED;
     } else if (level == 6) {
@@ -129,9 +130,15 @@ void Player::LevelUp() {
         bulletType = BulletType::SUPER_POWERED;
     }
     else if (level >= 7) {
-        firingRateFactor *= 1.2f;
         shootingPattern  = ShootingPattern::SIDEWAYS;
         bulletType = BulletType::EXTREME_POWERED;
     }
 }
 
+void Player::TakeDamage(int amount) {
+    if (amount <= 0) return;
+    health -= amount;
+    if (health < 0) {
+        health = 0;
+    }
+}

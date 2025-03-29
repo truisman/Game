@@ -10,33 +10,33 @@ Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target, int
 {
     switch (type) {
         case EnemyType::NORMAL:
-            this->health = 100;
+            this->health = 200;
             break;
         case EnemyType::FAST:
             this->width = 110;
             this->height = 110;
             this->speed = ENEMY_SPEED * 1.5f;
-            this->health = 70;
+            this->health = 150;
             break;
         case EnemyType::TANK:
             this->width = 200;
             this->height = 200;
             this->speed = ENEMY_SPEED * 0.6f;
-            this->health *= 5;
+            this->health = 700;
             this->firingRateFactor *= 0.5f;
             break;
         case EnemyType::QUICK:
              this->width = 130;
              this->height = 130;
              this->speed = ENEMY_SPEED * 1.2f;
+             this->health = 300;
              this->firingRateFactor *= 2.0f;
-             this->health = 120;
             break;
         case EnemyType::BOSS:
              this->width = 300;
              this->height = 300;
-             this->speed *= 0.5f;
-             this->health = 5000;
+             this->speed = ENEMY_SPEED * 0.5f;
+             this->health = 10000;
              this->firingRateFactor *= 1.5f;
              break;
     }
@@ -203,9 +203,14 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
     }
 
     // --- Shooting ---
-    if (currentTime - lastShotTime > (BASE_SHOT_COOLDOWN / firingRateFactor) && distanceToPlayer < 700.0f) {
-        Shoot(enemyBullets);
-        lastShotTime = currentTime;
+    float shootingRangeSq = 700.0f * 700.0f; // Max range to shoot
+    // Shoots only when engaging OR circling, AND if player is within range
+    if ((state == EnemyState::ENGAGING || state == EnemyState::CIRCLING) && distanceToPlayer < shootingRangeSq) {
+        Uint32 shotCooldown = static_cast<Uint32>(BASE_SHOT_COOLDOWN / firingRateFactor);
+        if (currentTime - lastShotTime > shotCooldown) {
+            Shoot(enemyBullets);
+            lastShotTime = currentTime;
+        }
     }
 }
 

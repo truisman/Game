@@ -59,14 +59,6 @@ void StageManager::AdvanceStage(Player* player) {
 
         // --- Apply Player Buffs ---
         if (player) {
-             // 1. Heal to max (assuming maxHealth is stored or calculated)
-             // If no maxHealth stored, maybe just add a significant amount?
-             // Let's assume a simple full heal for now. Need Player::maxHealth or similar.
-             // player->health = player->maxHealth; // IDEAL
-             player->health = 200; // TEMPORARY: Heal to a fixed value if no maxHealth
-
-             // 2. Double current health (effectively doubling max health implicitly for now)
-             player->health *= 2;
              std::cout << "Advanced to Stage " << GetCurrentStageNumber()
                        << "! Player healed and health doubled to " << player->health << "." << std::endl;
         } else {

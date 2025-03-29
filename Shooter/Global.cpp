@@ -24,5 +24,7 @@ const int NUM_GRID_CELLS = 20;
 const float MIN_SEPARATION_DISTANCE = 150.0f;
 const int ORB_SIZE = 30;
 const float ORB_FADE_RATE = 0.5f;
+const float ORB_MAGNET_RADIUS = 150.0f;
+const float ORB_MAGNET_SPEED = 4.0f;
 const float CREDITS_SCROLL_SPEED = 30.0f;
 const int CREDITS_LINE_HEIGHT = 30;

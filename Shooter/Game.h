@@ -24,6 +24,7 @@ class Orb;
 enum class GameState {
     MAIN_MENU,
     PLAYING,
+    PAUSED,
     GAME_OVER,
     CREDITS
 };
@@ -112,10 +113,12 @@ private:
     void StartNewGame();
     void ResetGameData();
     void ReturnToMenu();
+    void TogglePause();
 
     // --- Private Methods ---
     void HandleMenuInput(SDL_Event& event);
     void HandlePlayingInput(const Uint8* keystate);
+    void HandlePausedInput(SDL_Event& event);
     void HandleGameOverInput(SDL_Event& event);
     void HandleCreditsInput(SDL_Event& event);
 
@@ -125,6 +128,7 @@ private:
     void RenderMainMenu();
     void RenderPlayingState();
     void RenderPlayingUI();
+    void RenderPausedScreen();
     void RenderGameOver();
     void RenderEndCredits();
 };
