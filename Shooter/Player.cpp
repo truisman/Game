@@ -3,8 +3,8 @@
 #include <iostream>
 #include "Game.h"
 
-Player::Player(float x, float y, SDL_Texture* selectedTexture, int startingHealth, float speed, Game* gameInstance)
-    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(gameInstance), health(startingHealth), maxHealth(startingHealth), speed(speed), firingRateFactor(4.0f),
+Player::Player(float x, float y, SDL_Texture* selectedTexture, int startingHealth, float speed, Game* game_ptr)
+    : x(x), y(y), vx(0.0f), vy(0.0f), angle(0.0f), width(45), height(45), texture(selectedTexture), game(game_ptr), health(startingHealth), maxHealth(startingHealth), speed(speed), firingRateFactor(3.0f),
     lastShotTime(0), speedMultiplier(1.0f), shootingPattern(ShootingPattern::SINGLE), level(1), experience(0), experienceToNextLevel(50), bulletType(BulletType::NORMAL) {}
 
 void Player::HandleInput(const Uint8* keystate, std::vector<Bullet*>& bullets) {
@@ -63,19 +63,22 @@ void Player::Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPatter
         float bulletX = x + bulletOffsetX;
         float bulletY = y + bulletOffsetY;
         float bulletDamage = 35;
-
+        bool Shooted = false;
         switch (shootingPattern) {
             case ShootingPattern::SINGLE:
                 bullets.push_back(new Bullet(bulletX, bulletY, bulletVX, bulletVY, selectedBulletTexture, bulletDamage, bulletType));
+                Shooted = true;
                 break;
             case ShootingPattern::DOUBLE:
                 bullets.push_back(new Bullet(bulletX + 5, bulletY + 5, bulletVX, bulletVY, selectedBulletTexture, bulletDamage, bulletType));
                 bullets.push_back(new Bullet(bulletX - 5, bulletY - 5, bulletVX, bulletVY, selectedBulletTexture, bulletDamage, bulletType));
+                Shooted = true;
                 break;
             case ShootingPattern::TRIPLE:
                 bullets.push_back(new Bullet(bulletX, bulletY, bulletVX, bulletVY, selectedBulletTexture, bulletDamage, bulletType));
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
+                Shooted = true;
                 break;
             case ShootingPattern::SIDEWAYS:
                 bullets.push_back(new Bullet(bulletX, bulletY, bulletVX, bulletVY, selectedBulletTexture, bulletDamage, bulletType));
@@ -88,7 +91,11 @@ void Player::Shoot(std::vector<Bullet*>& bullets, ShootingPattern shootingPatter
 
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle - 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
                 bullets.push_back(new Bullet(bulletX, bulletY, BULLET_SPEED * cos((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, BULLET_SPEED * sin((angle + 10 - 90) * M_PI / 180.0f) * speedMultiplier, selectedBulletTexture, bulletDamage, bulletType));
+                Shooted = true;
                 break;
+        }
+        if (Shooted && game) {
+             game->PlaySoundEffect(game->playerShootSound);
         }
         lastShotTime = currentTime;
     }

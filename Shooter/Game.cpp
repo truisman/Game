@@ -67,6 +67,13 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
         return false;
     }
 
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        std::cerr << "SDL_mixer could not initialize! Mix_Error: " << Mix_GetError() << std::endl;
+    } else {
+        std::cout << "SDL_mixer initialized successfully." << std::endl;
+        Mix_AllocateChannels(16);
+    }
+
     // 6. Vi tri vien dan
     bulletRenderOffsetX = SCREEN_WIDTH / 2;
     bulletRenderOffsetY = SCREEN_HEIGHT / 2;
@@ -94,6 +101,12 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
 
     orbTexture = IMG_LoadTexture(renderer, "assets/orb.png");
 
+    if (!LoadSounds()) {
+        std::cerr << "FATAL ERROR: Failed to load required sounds. Cannot start game." << std::endl;
+        Clean();
+        return false;
+    }
+
     // 8. Kiem tra load texture
     if (!playerTex || !neutralObstacleTexture || !hostileObstacleTexture || !backgroundTexture || !orbTexture) {
         std::cerr << "Failed to load one or more textures: " << IMG_GetError() << std::endl;
@@ -115,6 +128,15 @@ bool Game::Init(const char* title, int xpos, int ypos, int width, int height, bo
     selectedMenuOption = 0;
     isRunning = true;
 
+    if (backgroundMusic) {
+        if (Mix_PlayMusic(backgroundMusic, -1) == -1) {
+             std::cerr << "Mix_PlayMusic Error: " << Mix_GetError() << std::endl;
+        }
+        const float musicVolumePercentage = 0.20f; // 15%
+        int calculatedMusicVolume = static_cast<int>(MIX_MAX_VOLUME * musicVolumePercentage);
+        Mix_VolumeMusic(calculatedMusicVolume);
+    }
+    std::cout << "[DEBUG] Game::Init End - Success" << std::endl;
     return true;
 }
 
@@ -217,42 +239,58 @@ void Game::SpawnEnemy(int count) {
     }
 }
 
-void Game::SpawnObstacles(int count) {
-    for (int i = 0; i < count; i++) {
-        // Vi tri bat ky
-        float randX = player->x + RandomFloat(-SPAWN_RADIUS, SPAWN_RADIUS);
-        float randY = player->y + RandomFloat(-SPAWN_RADIUS, SPAWN_RADIUS);
-
-        float randSize = 100 + (rand() % 125);
-
-        // Kha nang spawn
-        ObstacleType type = (rand() % 100 < 80) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
-
-        // Chon texture
-        SDL_Texture* tex = nullptr;
-        SDL_Texture* obsBulletTex = nullptr;
-        int obstacleHealth = 0;
-        if (type == ObstacleType::NEUTRAL) {
-            tex = neutralObstacleTexture;
-            obstacleHealth = 99999;
-        } else {
-            tex = hostileObstacleTexture;
-            obstacleHealth = 200;
-            obsBulletTex = bulletTexNormal;
-        }
-
-        // Tao chuong ngoai vat
-        if (tex) {
-            obstacles.push_back(new Obstacle(randX, randY, randSize, randSize, tex, type, obstacleHealth, obsBulletTex));
-        } else {
-            std::cerr << "Warning: Could not determine texture for obstacle type." << std::endl;
-        }
-    }
-}
-
 // Ham tao so ngau nhien
 float Game::RandomFloat(float min, float max) {
     return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
+}
+
+bool Game::LoadSounds() {
+    bool success = true;
+    backgroundMusic = Mix_LoadMUS("assets/background_music.ogg");
+    if (backgroundMusic) {
+        if (Mix_PlayMusic(backgroundMusic, -1) == -1) {
+             std::cerr << "Mix_PlayMusic Error: " << Mix_GetError() << std::endl;
+        }
+        const float musicVolumePercentage = 0.20f;
+        int calculatedMusicVolume = static_cast<int>(MIX_MAX_VOLUME * musicVolumePercentage);
+        Mix_VolumeMusic(calculatedMusicVolume);
+    }
+
+    playerShootSound = Mix_LoadWAV("assets/player_shoot.wav");
+    if(playerShootSound) {
+        const float playerShootVolumePercentage = 0.15f;
+        int calculatedChunkVolume = static_cast<int>(MIX_MAX_VOLUME * playerShootVolumePercentage);
+        Mix_VolumeChunk(playerShootSound, calculatedChunkVolume);
+    }
+
+    enemyShootSound = Mix_LoadWAV("assets/enemy_shoot.wav");
+    if(enemyShootSound) {
+        const float enemyShootVolumePercentage = 0.05f;
+        int calculatedChunkVolume = static_cast<int>(MIX_MAX_VOLUME * enemyShootVolumePercentage);
+        Mix_VolumeChunk(enemyShootSound, calculatedChunkVolume);
+    }
+
+    enemyDeathSound = Mix_LoadWAV("assets/enemy_death.wav");
+    if(enemyDeathSound) {
+        const float enemyDeathVolumePercentage = 0.20f;
+        int calculatedChunkVolume = static_cast<int>(MIX_MAX_VOLUME * enemyDeathVolumePercentage);
+        Mix_VolumeChunk(enemyDeathSound, calculatedChunkVolume);
+    }
+
+    playerDeathSound = Mix_LoadWAV("assets/player_death.wav");
+    if(playerDeathSound) {
+        const float playerDeathVolumePercentage = 0.20f;
+        int calculatedChunkVolume = static_cast<int>(MIX_MAX_VOLUME * playerDeathVolumePercentage);
+        Mix_VolumeChunk(playerDeathSound, calculatedChunkVolume);
+    }
+    return success;
+}
+
+// --- Sound Playing Helper ---
+void Game::PlaySoundEffect(Mix_Chunk* sound) {
+    if (sound != nullptr) {
+        Mix_PlayChannel(-1, sound, 0);
+    }
 }
 
 void Game::StartNewGame() {
@@ -280,6 +318,13 @@ void Game::StartNewGame() {
     if (stageManager.GetCurrentStageNumber() <= 0) { isRunning = false; return; }
 
     currentState = GameState::PLAYING;
+    std::cout << "[DEBUG] Game::StartNewGame State set to PLAYING" << std::endl;
+
+    if (backgroundMusic && !Mix_PlayingMusic()) {
+         Mix_PlayMusic(backgroundMusic, -1);
+    } else if (backgroundMusic && Mix_PausedMusic()) {
+        Mix_ResumeMusic();
+    }
 }
 
 void Game::ResetGameData() {
@@ -307,6 +352,8 @@ void Game::ReturnToMenu() {
     ResetGameData();
     currentState = GameState::MAIN_MENU;
     selectedMenuOption = 0;
+    Mix_PauseMusic();
+    Mix_FadeOutMusic(500);
     std::cout << "Returning to Main Menu." << std::endl;
 }
 
@@ -451,7 +498,6 @@ void Game::Update() {
 }
 
 void Game::UpdatePlayingState() {
-
     if (!player) { currentState = GameState::GAME_OVER; return; }
 
     // --- Stage Advancement Check ---
@@ -558,13 +604,15 @@ void Game::UpdatePlayingState() {
                     return;
                 }
 			}
-        } else {
+        }
+        else {
             attempts++;
             if (attempts > 100) {
                 return;
             }
         }
     }
+
 	// --- Clear the grid for the next frame ---
     for (int i = 0; i < NUM_GRID_CELLS; ++i) {
         for (int j = 0; j < NUM_GRID_CELLS; ++j) {
@@ -598,9 +646,11 @@ void Game::UpdatePlayingState() {
                     enemy->health -= bullet->damage;
                     if (enemy->health <= 0) {
                         stageManager.RecordKill();
+                        PlaySoundEffect(enemyDeathSound);
                         if (orbTexture) {
                              int orbXp = 10; int orbSize = 15;
                              switch (enemy->type) {
+                                case EnemyType::NORMAL: orbXp = 10; orbSize = 15; break;
                                 case EnemyType::FAST: orbXp = 15; orbSize = 20; break;
                                 case EnemyType::QUICK: orbXp = 20; orbSize = 25; break;
                                 case EnemyType::TANK: orbXp = 50; orbSize = 30; break;
@@ -608,7 +658,8 @@ void Game::UpdatePlayingState() {
                              }
                              orbs.push_back(new Orb(enemy->x + enemy->width / 2.0f, enemy->y + enemy->height / 2.0f, orbTexture, orbSize, orbXp));
                         }
-                        delete enemy; itE = enemies.erase(itE);
+                        delete enemy;
+                        itE = enemies.erase(itE);
                     } else { ++itE; }
                     bullet->active = false;
                     bulletRemoved = true;
@@ -629,6 +680,7 @@ void Game::UpdatePlayingState() {
                         bulletRemoved = true;
 
                         if (obstacle->health <= 0 && obstacle->type != ObstacleType::NEUTRAL) {
+                            PlaySoundEffect(enemyDeathSound);
                             delete obstacle;
                             itO = obstacles.erase(itO);
                         } else {
@@ -652,7 +704,9 @@ void Game::UpdatePlayingState() {
     // --- Enemy Bullets vs. Player AND Obstacle ---
     for (auto it = enemyBullets.begin(); it != enemyBullets.end();) {
         Bullet* bullet = *it;
-        if (!bullet) { it = enemyBullets.erase(it); continue; }
+        if (!bullet) {
+            it = enemyBullets.erase(it); continue;
+        }
 
         bullet->Update();
         bool bulletRemoved  = false;
@@ -665,36 +719,47 @@ void Game::UpdatePlayingState() {
             SDL_Rect bulletRect = {static_cast<int>(bullet->x - bullet->width/2.0f), static_cast<int>(bullet->y - bullet->height/2.0f), bullet->width, bullet->height};
             if (SDL_HasIntersection(&bulletRect, &playerRect)) {
                 player->TakeDamage(bullet->damage);
-                if (player->health <= 0) {currentState = GameState::GAME_OVER; delete bullet; it = enemyBullets.erase(it); return; }
+                if (player->health <= 0) {
+                    currentState = GameState::GAME_OVER;
+                    PlaySoundEffect(playerDeathSound);
+                Mix_HaltMusic();
+                delete bullet;
+                it = enemyBullets.erase(it);
+                return;
+                }
                 bulletRemoved  = true;
             }
 
-            if (!bulletRemoved ) {
+            if (!bulletRemoved) {
                 for (auto itO = obstacles.begin(); itO != obstacles.end();) {
                      Obstacle* obstacle = *itO;
                      if (!obstacle) { itO = obstacles.erase(itO); continue; }
 
                      SDL_Rect obstacleRect = obstacle->GetRect();
                      if (SDL_HasIntersection(&bulletRect, &obstacleRect)) {
-                         obstacle->TakeDamage(bullet->damage);
-                         bulletRemoved  = true;
-
-                         if (obstacle->health <= 0 && obstacle->type != ObstacleType::NEUTRAL) {
-                              delete obstacle;
-                              itO = obstacles.erase(itO); // Erase obstacle
+                         bulletRemoved = true;
+                         if (obstacle->type != ObstacleType::HOSTILE) {
+                             obstacle->TakeDamage(bullet->damage);
+                             if (obstacle->health <= 0) {
+                                  PlaySoundEffect(enemyDeathSound);
+                                  delete obstacle;
+                                  itO = obstacles.erase(itO);
+                             } else {
+                                  ++itO;
+                             }
                          } else {
-                              ++itO;
+                             ++itO;
                          }
                          break;
                      } else {
                          ++itO;
                      }
-                }
-            }
-        }
+                 }
+             }
+         }
 
         // Cleanup
-        if (bulletRemoved ) {
+        if (bulletRemoved) {
             delete bullet;
             it = enemyBullets.erase(it);
         } else {
@@ -751,7 +816,12 @@ void Game::UpdatePlayingState() {
                  if (currentTimeForObsDamage - lastObstacleDamageTime > OBSTACLE_DAMAGE_COOLDOWN) {
                       player->TakeDamage(20);
                       lastObstacleDamageTime = currentTimeForObsDamage;
-                      if (player->health <= 0) { currentState = GameState::GAME_OVER; return; }
+                      if (player->health <= 0) {
+                        PlaySoundEffect(playerDeathSound);
+                        Mix_HaltMusic();
+                        currentState = GameState::GAME_OVER;
+                        return;
+                    }
                  }
             }
         }
@@ -1002,6 +1072,7 @@ void Game::RenderEndCredits() {
         "",
         "Special Thanks:",
         "SDL Libraries",
+        "Music: Chad Crouch| Charcoal",
         "You (The Player!)",
         "",
         "",
@@ -1042,6 +1113,13 @@ void Game::Clean() {
     for (auto orb : orbs) delete orb;
     orbs.clear();
 
+    // --- Free Sounds ---
+    if (backgroundMusic) Mix_FreeMusic(backgroundMusic);
+    if (playerShootSound) Mix_FreeChunk(playerShootSound);
+    if (enemyShootSound) Mix_FreeChunk(enemyShootSound);
+    if (enemyDeathSound) Mix_FreeChunk(enemyDeathSound);
+    if (playerDeathSound) Mix_FreeChunk(playerDeathSound);
+
     // Destroy textures
     if (playerTex) SDL_DestroyTexture(playerTex);
 
@@ -1067,6 +1145,9 @@ void Game::Clean() {
         TTF_CloseFont(uiFont);
         uiFont = nullptr;
     }
+
+    Mix_CloseAudio();
+    Mix_Quit();
 
     if (renderer) {
         SDL_DestroyRenderer(renderer);

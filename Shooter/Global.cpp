@@ -1,7 +1,7 @@
 #include "Globals.h"
 
-const int SCREEN_WIDTH = 1920;
-const int SCREEN_HEIGHT = 1080;
+const int SCREEN_WIDTH = 1280;
+const int SCREEN_HEIGHT = 960;
 const int backgroundWidth = 1920;
 const int backgroundHeight = 1080;
 const float BULLET_SPEED = 5.0f;

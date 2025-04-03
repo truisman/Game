@@ -1,9 +1,10 @@
-// include/Globals.h
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -12,7 +13,6 @@
 #include <ctime>
 #include <random>
 
-// Global Constants
 extern const int SCREEN_WIDTH;
 extern const int SCREEN_HEIGHT;
 extern const int backgroundWidth;
@@ -76,4 +76,4 @@ enum class ShootingPattern {
     SIDEWAYS
 };
 
-#endif // GLOBALS_H
+#endif

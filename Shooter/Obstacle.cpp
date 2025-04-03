@@ -6,8 +6,8 @@
 #include <cmath>
 #include <SDL.h>
 
-Obstacle::Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType type, int health, SDL_Texture* bulletTex)
-    : x(x), y(y), width(w), height(h), texture(tex), bulletTexture((type == ObstacleType::HOSTILE) ? bulletTex : nullptr), type(type), health(health), initialY(y), angle(0.0f), lastShotTime(0) {}
+Obstacle::Obstacle(float x, float y, float w, float h, SDL_Texture* tex, ObstacleType type_in, int health_in, SDL_Texture* bulletTex)
+    : x(x), y(y), width(w), height(h), texture(tex), bulletTexture((type == ObstacleType::HOSTILE) ? bulletTex : nullptr), type(type_in), health(health_in), initialY(y), angle(0.0f), lastShotTime(0) {}
 
 SDL_Rect Obstacle::GetRect() const {
     return { (int)x, (int)y, (int)width, (int)height };
@@ -69,29 +69,27 @@ void Obstacle::Shoot(std::vector<Bullet*>& enemyBullets, Player* player) {
         float distance = sqrt(dx * dx + dy * dy);
 
         // 2. Check Range
-        if (distance < 700.0f) {
-            if (distance > 0) {
-                float normDX = dx / distance;
-                float normDY = dy / distance;
+        if (distance > 0) {
+            float normDX = dx / distance;
+            float normDY = dy / distance;
 
-                float bulletVX = normDX * BULLET_SPEED;
-                float bulletVY = normDY * BULLET_SPEED;
+            float bulletVX = normDX * BULLET_SPEED;
+            float bulletVY = normDY * BULLET_SPEED;
 
-                BulletType bulletType = BulletType::NORMAL;
-                int baseDamage = 20;
+            BulletType bulletType = BulletType::NORMAL;
+            int baseDamage = 20;
 
-                float obstacleCenterX = x + width / 2.0f;
-                float obstacleCenterY = y + height / 2.0f;
+            float obstacleCenterX = x + width / 2.0f;
+            float obstacleCenterY = y + height / 2.0f;
 
-                float spawnOffsetDistance = (std::max(width, height) / 2.0f) + 1.0f;
+            float spawnOffsetDistance = (std::max(width, height) / 2.0f) + 1.0f;
 
-                float spawnX = obstacleCenterX + normDX * spawnOffsetDistance;
-                float spawnY = obstacleCenterY + normDY * spawnOffsetDistance;
+            float spawnX = obstacleCenterX + normDX * spawnOffsetDistance;
+            float spawnY = obstacleCenterY + normDY * spawnOffsetDistance;
 
-                enemyBullets.push_back(new Bullet(spawnX, spawnY, bulletVX, bulletVY, bulletTexture, baseDamage, bulletType));
+            enemyBullets.push_back(new Bullet(spawnX, spawnY, bulletVX, bulletVY, bulletTexture, baseDamage, bulletType));
 
-                lastShotTime = currentTime;
-            }
+            lastShotTime = currentTime;
         }
     }
 }

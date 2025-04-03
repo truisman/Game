@@ -20,6 +20,7 @@ public:
     float speed;
     float firingRateFactor;
     Uint32 lastShotTime;
+    Game* game;
 
     EnemyType type;
     EnemyState state;
@@ -35,4 +36,4 @@ public:
     SDL_Texture* bulletTexture;
 };
 
-#endif // ENEMY_H
+#endif

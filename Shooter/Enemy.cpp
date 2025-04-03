@@ -4,9 +4,9 @@
 #include "Game.h"
 #include <iostream>
 
-Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target, int health, float speedFactor, float firingRateFactor, Game* game, EnemyType type, SDL_Texture* selectedBulletTexture)
-    : x(x), y(y), vx(0), vy(0), angle(0), width(110), height(110), texture(selectedTexture),bulletTexture(selectedBulletTexture), target(target), health(health), speed(ENEMY_SPEED),
-      firingRateFactor(firingRateFactor), lastShotTime(0), state(EnemyState::WANDERING), lastStateChange(0)
+Enemy::Enemy(float x, float y, SDL_Texture* selectedTexture, Player* target_in, int health_in, float speedFactor, float firingRateFactor_in, Game* game_ptr, EnemyType type_in, SDL_Texture* selectedBulletTexture)
+    : x(x), y(y), vx(0), vy(0), angle(0), width(110), height(110), texture(selectedTexture),bulletTexture(selectedBulletTexture), target(target_in), game(game_ptr), health(health_in), speed(ENEMY_SPEED),
+      firingRateFactor(firingRateFactor_in), lastShotTime(0), state(EnemyState::WANDERING), lastStateChange(0), type(type_in)
 {
     switch (type) {
         case EnemyType::NORMAL:
@@ -72,7 +72,6 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
     // --- Movement and Behavior based on State ---
     float targetVX = 0, targetVY = 0;
     float maxForce = 0.3f;
-    float speed = 2.0f;
 
     switch (state) {
         case EnemyState::WANDERING: {
@@ -91,10 +90,10 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
             break;
         }
         case EnemyState::RETREATING: {
-            float retreatAngle = atan2(dyToPlayer, dxToPlayer) + M_PI; // Directly away
+            float retreatAngle = atan2(dyToPlayer, dxToPlayer) + M_PI;
             // Add some randomness to the retreat angle for less predictable movement
-            retreatAngle += game->RandomFloat(-M_PI / 4, M_PI / 4); // +/- 45 degrees
-            targetVX = cos(retreatAngle) * speed * 1.5f; // Retreat faster
+            retreatAngle += game->RandomFloat(-M_PI / 4, M_PI / 4);
+            targetVX = cos(retreatAngle) * speed * 1.5f;
             targetVY = sin(retreatAngle) * speed * 1.5f;
             break;
         }
@@ -103,16 +102,16 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
             float strafeAngle = angleToPlayer + M_PI / 2.0f; // 90 degrees to the right
 
             // 2. Randomly choose to strafe left or right.
-            if (currentTime - lastStateChange > 2000) // Switch strafe direction
+            if (currentTime - lastStateChange > 2000)
 			{
                 circlingDirection = (rand() % 2 == 0) ? 1.0f : -1.0f;
                 lastStateChange = currentTime;
             }
 
 			// 3. Combine forward movement (towards optimal range) and strafing.
-            float desiredDistance = 400.0f; // Optimal circling distance.
+            float desiredDistance = 400.0f;
             float distanceDifference = distanceToPlayer - desiredDistance;
-			float forwardSpeed = std::clamp(distanceDifference * 0.02f, -speed, speed); // Adjust 0.02 as needed
+			float forwardSpeed = std::clamp(distanceDifference * 0.02f, -speed, speed);
 
             targetVX = cos(angleToPlayer) * forwardSpeed + cos(strafeAngle) * speed * circlingDirection;
             targetVY = sin(angleToPlayer) * forwardSpeed + sin(strafeAngle) * speed * circlingDirection;
@@ -157,7 +156,7 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
     y += vy;
 
     // --- Repositioning (Final Correction) ---
-    futureRect = {static_cast<int>(x), static_cast<int>(y), width, height}; // Update futureRect
+    futureRect = {static_cast<int>(x), static_cast<int>(y), width, height};
     for (const auto& obs : obstacles) {
         SDL_Rect obsRect = obs->GetRect();
         if (SDL_HasIntersection(&futureRect, &obsRect)) {
@@ -185,7 +184,7 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
     }
 
     if (vx != 0 || vy != 0) {  // Only update angle if moving
-        float targetAngle = atan2(vy, vx) * 180.0f / M_PI; // Calculate the target angle
+        float targetAngle = atan2(vy, vx) * 180.0f / M_PI;
 
         // Calculate the difference, handling wrap-around
         float angleDiff = targetAngle - angle;
@@ -193,18 +192,17 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
         while (angleDiff < -180.0f) angleDiff += 360.0f;
 
         // Smoothly interpolate towards the target angle
-        const float rotationSpeed = 0.2f; // Adjust this value (0.0 = no rotation, 1.0 = instant rotation)
+        const float rotationSpeed = 0.2f;
         angle += angleDiff * rotationSpeed;
 
-        // Keep angle within -180 to 180 range (optional, but good practice)
+        // -180 to 180
         while (angle > 180.0f) angle -= 360.0f;
         while (angle < -180.0f) angle += 360.0f;
 
     }
 
-    // --- Shooting ---
-    float shootingRangeSq = 500.0f * 500.0f; // Max range to shoot
-    // Shoots only when engaging OR circling, AND if player is within range
+    // Shooting
+    float shootingRangeSq = 500.0f * 500.0f;
     if ((state == EnemyState::ENGAGING || state == EnemyState::CIRCLING) && distanceToPlayer < shootingRangeSq) {
         Uint32 shotCooldown = static_cast<Uint32>(BASE_SHOT_COOLDOWN / firingRateFactor);
         if (currentTime - lastShotTime > shotCooldown) {
@@ -238,7 +236,7 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
 
     BulletType bulletType = BulletType::NORMAL;
     int baseDamage = 15;
-
+    bool Shooted = false;
     switch (type) {
         case EnemyType::NORMAL:
             bulletType = BulletType::NORMAL;
@@ -263,6 +261,7 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
             case EnemyType::TANK:
             {
                 enemyBullets.push_back(new Bullet(startX, startY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+            Shooted = true;
             }
             break;
 
@@ -275,6 +274,7 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
 
             enemyBullets.push_back(new Bullet(startX + offsetX, startY + offsetY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
             enemyBullets.push_back(new Bullet(startX - offsetX, startY - offsetY, baseVX, baseVY, this->bulletTexture, baseDamage, bulletType));
+            Shooted = true;
             }
             break;
 
@@ -294,9 +294,13 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
 
             enemyBullets.push_back(new Bullet(startX, startY, cos(angleLeftSpread), sin(angleLeftSpread), this->bulletTexture, baseDamage, bulletType));
             enemyBullets.push_back(new Bullet(startX, startY, cos(angleRightSpread), sin(angleRightSpread), this->bulletTexture, baseDamage, bulletType));
+            Shooted = true;
             }
             break;
-    }
+        }
+        if (Shooted && game) {
+                 game->PlaySoundEffect(game->enemyShootSound);
+        }
 }
 
 void Enemy::Render(SDL_Renderer* renderer, Player* player) {

@@ -32,4 +32,4 @@ public:
     SDL_Rect GetRect() const;
 };
 
-#endif // OBSTACLE_H
+#endif

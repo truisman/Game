@@ -11,7 +11,7 @@ public:
     float x, y;
     int width, height;
     SDL_Texture* texture;
-    float alpha; // For fading effect
+    float alpha;
     int xpValue;
 
     Orb(float x, float y, SDL_Texture* texture, int size, int xp);
@@ -20,4 +20,4 @@ public:
     SDL_Rect GetRect() const;
 };
 
-#endif // ORB_H
+#endif

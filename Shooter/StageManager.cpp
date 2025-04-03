@@ -21,13 +21,13 @@ void StageManager::LoadStages() {
     // Stage 3
     stages.push_back({ 3, 30, 1600, 2, {{EnemyType::NORMAL, 300}, {EnemyType::FAST, 350}, {EnemyType::QUICK, 250}, {EnemyType::TANK, 100}}, false, 0 });
 
-    // Stage 4 (Boss Can Spawn)
+    // Stage 4
     stages.push_back({ 4, 50, 1400, 2, {{EnemyType::NORMAL, 150}, {EnemyType::FAST, 250}, {EnemyType::QUICK, 340}, {EnemyType::TANK, 250}}, true, 10 });
 
-    // Stage 5 (Boss Can Spawn)
+    // Stage 5
     stages.push_back({ 5, 70, 1300, 3, {{EnemyType::NORMAL, 60}, {EnemyType::FAST, 230}, {EnemyType::QUICK, 400}, {EnemyType::TANK, 300}}, true, 10 });
 
-    // Stage 6 (Final Stage, Boss Can Spawn)
+    // Stage 6
     stages.push_back({ 6, 100, 1200, 3, {{EnemyType::FAST, 200}, {EnemyType::QUICK, 350}, {EnemyType::TANK, 420}}, true, 30 });
 
     std::cout << "Loaded " << stages.size() << " stages." << std::endl;
@@ -57,7 +57,7 @@ void StageManager::AdvanceStage(Player* player) {
         currentStageIndex++;
         currentKillCount = 0;
 
-        // --- Apply Player Buffs ---
+        // Apply Player Buffs
         if (player) {
              std::cout << "Advanced to Stage " << GetCurrentStageNumber()
                        << "! Player healed and health doubled to " << player->health << "." << std::endl;
@@ -83,8 +83,6 @@ bool StageManager::ShouldAdvanceStage() const {
 
 const StageData& StageManager::GetCurrentStageData() const {
     if (currentStageIndex < 0 || currentStageIndex >= stages.size()) {
-        // Return a default/empty StageData or handle error
-        // For simplicity, returning the first stage if invalid, but log error
         if (stages.empty()) {
              static StageData emptyStage = {0, 0, 0, 0, {}, false, 0};
              std::cerr << "Error: GetCurrentStageData called with no stages loaded!" << std::endl;

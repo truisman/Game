@@ -10,13 +10,12 @@ void Orb::Update() {
     if (alpha < 0.0f) {
         alpha = 0.0f;
     }
-    // Could add movement logic here later (e.g., moving towards player slowly)
 }
 
 void Orb::Render(SDL_Renderer* renderer, Player* player) {
     if (alpha <= 0 || !texture || !player) return;
 
-    // Calculate render position centered around orb's x,y relative to player
+    // Calculate render position
     SDL_Rect renderRect = {
        static_cast<int>(x - player->x + SCREEN_WIDTH / 2.0f - width / 2.0f),
        static_cast<int>(y - player->y + SCREEN_HEIGHT / 2.0f - height / 2.0f),

@@ -1,11 +1,12 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <SDL.h>
-#include <SDL_ttf.h>
-#include <vector>
-#include <string>
+#include <fstream>
 #include <sstream>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <limits>
 #include "Globals.h"
 #include "Player.h"
 #include "Bullet.h"
@@ -28,11 +29,9 @@ enum class GameState {
     GAME_OVER,
     CREDITS
 };
-// ---
 
 class Game {
 public:
-    // ... (textures made public or use getters) ...
     SDL_Texture* bulletTexNormal;
     SDL_Texture* bulletTexPowered;
     SDL_Texture* bulletTexSuperPowered;
@@ -51,10 +50,11 @@ public:
     bool Running() const;
 
     float RandomFloat(float min, float max);
+    bool LoadSounds();
     SDL_Renderer* GetRenderer();
 
+    void PlaySoundEffect(Mix_Chunk* sound);
 
-private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     bool isRunning;
@@ -91,6 +91,12 @@ private:
     SDL_Texture* orbTexture;
     SDL_Texture* menuBackgroundTexture;
 
+    // ---Sound---
+    Mix_Music* backgroundMusic;
+    Mix_Chunk* playerShootSound;
+    Mix_Chunk* enemyShootSound;
+    Mix_Chunk* enemyDeathSound;
+    Mix_Chunk* playerDeathSound;
 
     // --- UI / Font ---
     TTF_Font* uiFont;
