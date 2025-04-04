@@ -144,7 +144,7 @@
 	"Globals.h"
 	"Player.h"
 
-1743702213 source:d:\game development sdl\2d shooter\shooter\enemy.cpp
+1743705665 source:d:\game development sdl\2d shooter\shooter\enemy.cpp
 	"Enemy.h"
 	"Player.h"
 	"Obstacle.h"
@@ -173,7 +173,7 @@
 	<iostream>
 	"Game.h"
 
-1743703519 source:d:\game development sdl\2d shooter\shooter\game.cpp
+1743741845 source:d:\game development sdl\2d shooter\shooter\game.cpp
 	"Game.h"
 	"Player.h"
 	"Enemy.h"

@@ -19,12 +19,12 @@ Bullet::Bullet(float x, float y, float vx, float vy, SDL_Texture* selectedTextur
             case BulletType::SUPER_POWERED:
                 this->width = 30;
                 this->height = 30;
-                damageMultiplier = 2.0f;
+                damageMultiplier = 2.5f;
                 break;
             case BulletType::EXTREME_POWERED:
                 this->width = 35;
                 this->height = 35;
-                damageMultiplier = 3.0f;
+                damageMultiplier = 4.0f;
                 break;
         }
         damage = static_cast<int>(baseDamage * damageMultiplier);

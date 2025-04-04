@@ -577,7 +577,7 @@ void Game::UpdatePlayingState() {
 			if (!tooClose)
 			{
 				// 6. Determine obstacle type and texture
-                ObstacleType type = (rand() % 100 < 80) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
+                ObstacleType type = (rand() % 100 < 90) ? ObstacleType::NEUTRAL : ObstacleType::HOSTILE;
                 SDL_Texture* tex = (type == ObstacleType::NEUTRAL) ? neutralObstacleTexture : hostileObstacleTexture;
                 SDL_Texture* obsBulletTex = nullptr;
                 int obstacleHealth = 0;

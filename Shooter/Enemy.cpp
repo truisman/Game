@@ -75,7 +75,7 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
 
     switch (state) {
         case EnemyState::WANDERING: {
-            if (currentTime - lastStateChange > 5000) { // Change direction every 5 seconds
+            if (currentTime - lastStateChange > 5000) {
                 wanderingAngle = game->RandomFloat(0, 2 * M_PI);
                 lastStateChange = currentTime;
             }
@@ -99,7 +99,7 @@ void Enemy::Update(std::vector<Enemy*>& enemies, std::vector<Obstacle*>& obstacl
         }
         case EnemyState::CIRCLING: {
              float angleToPlayer = atan2(dyToPlayer, dxToPlayer);
-            float strafeAngle = angleToPlayer + M_PI / 2.0f; // 90 degrees to the right
+            float strafeAngle = angleToPlayer + M_PI / 2.0f;
 
             // 2. Randomly choose to strafe left or right.
             if (currentTime - lastStateChange > 2000)
@@ -235,7 +235,7 @@ void Enemy::Shoot(std::vector<Bullet*>& enemyBullets) {
     }
 
     BulletType bulletType = BulletType::NORMAL;
-    int baseDamage = 15;
+    int baseDamage = 10;
     bool Shooted = false;
     switch (type) {
         case EnemyType::NORMAL:
